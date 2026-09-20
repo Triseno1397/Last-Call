@@ -5,6 +5,7 @@ import { DAY_LABELS, SLOT_LABELS, currentDay, currentSlot } from '@/engine/calen
 import { STAGE_LABELS, crowdAt, moodBand, moodValueFor, MOOD_CUES } from '@/engine/characters';
 import { absoluteDay } from '@/engine/calendar';
 import { effectiveAwareness } from '@/engine/awareness';
+import { reputationAt, reputationLabel } from '@/engine/reputation';
 import { useGameStore } from '@/state/gameStore';
 import { Button } from '@/ui/components/Button';
 import { Chip } from '@/ui/components/Chip';
@@ -28,6 +29,8 @@ export function VenueScreen({ game, visit }: { game: GameState; visit: VenueVisi
       </header>
 
       <p className="panel-flat px-4 py-3 text-sm italic text-ink-300">{visit.atmosphere}</p>
+
+      <p className="text-xs text-ink-600">{reputationLabel(reputationAt(game, visit.venueId))}</p>
 
       {notice && (
         <button onClick={dismissNotice} className="panel-flat px-3 py-2 text-left text-sm text-gold-400">

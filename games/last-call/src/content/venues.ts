@@ -60,9 +60,12 @@ export const VENUES: Readonly<Record<VenueId, VenueDef>> = {
     statWeights: { fitness: 1.35, confidence: 1.2, humor: 1, charm: 0.95, style: 0.8, culture: 0.7 },
     entryCost: 0,
     energyCost: 18,
-    openDays: WEEKDAYS.concat(['sat']),
+    openDays: WEEKDAYS.concat(['sat', 'sun']),
     openSlots: ['morning', 'evening'],
-    regulars: [{ character: 'nadia', days: ['mon', 'wed', 'fri'], slots: ['morning', 'evening'] }],
+    regulars: [
+      { character: 'nadia', days: ['mon', 'wed', 'fri'], slots: ['morning', 'evening'] },
+      { character: 'wren', days: ['sun'], slots: ['morning'] },
+    ],
     atmosphere: [
       'Someone is filming a set from three angles. Nobody will ever watch it.',
       'The gym playlist has lurched from techno to a power ballad and everybody adjusted.',

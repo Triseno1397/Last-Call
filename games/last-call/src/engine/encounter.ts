@@ -17,6 +17,13 @@ import { absoluteDay, appendLog, makeLogEntry } from '@/engine/calendar';
 import { decayInterest, memoryFor, moodBand, moodValueFor, nextStage } from '@/engine/characters';
 import { grantAwarenessXp, grantStatXp, registerSocialOutcome } from '@/engine/progression';
 import { effectiveAwareness } from '@/engine/awareness';
+import {
+  REPUTATION_FOR_OUTCOME,
+  adjustReputation,
+  gossipFor,
+  reputationAt,
+  reputationComfortBonus,
+} from '@/engine/reputation';
 
 /**
  * The provider the game is currently talking to. Swapping this line for
@@ -42,6 +49,17 @@ export function buildContext(
   const absDay = absoluteDay(state.clock);
   const memory = decayInterest(memoryFor(state.characters, characterId), absDay);
   const moodValue = moodValueFor(state.rngSeed, characterId, absDay);
+  const gossip = gossipFor(character, state.characters);
+  const reputation = reputationComfortBonus(reputationAt(state, venueId));
+
+  const startingInterest = Math.max(
+    0,
+    (memory.met ? memory.interest : character.baseInterest) + gossip.interest,
+  );
+  const startingComfort = Math.max(
+    5,
+    character.baseComfort + Math.round(moodValue / 2) + reputation + gossip.comfort,
+  );
 
   return {
     character,
@@ -52,6 +70,9 @@ export function buildContext(
     moodValue,
     openingBonus,
     awareness: effectiveAwareness(state.player),
+    startingInterest,
+    startingComfort,
+    openingNotes: gossip.notes,
   };
 }
 
@@ -98,9 +119,10 @@ export async function beginEncounter(
 ): Promise<EncounterState> {
   const context = buildContext(state, characterId, venueId, openingBonus);
   const turn = await provider.open(context);
-  const interest = context.memory.met ? context.memory.interest : context.character.baseInterest;
-  const comfort = context.character.baseComfort + Math.round(context.moodValue / 2);
-  return stateFromTurn(context, turn, null, interest, comfort);
+  const opened = stateFromTurn(context, turn, null, context.startingInterest, context.startingComfort);
+  return context.openingNotes.length > 0
+    ? { ...opened, cue: [turn.cue, ...context.openingNotes].filter(Boolean).join(' ') }
+    : opened;
 }
 
 /**
@@ -248,7 +270,7 @@ export function concludeEncounter(
     }
   }
 
-  next = { ...next, player };
+  next = adjustReputation({ ...next, player }, encounter.venueId as VenueId, REPUTATION_FOR_OUTCOME[outcome]);
   entries.unshift(
     makeLogEntry(
       next,

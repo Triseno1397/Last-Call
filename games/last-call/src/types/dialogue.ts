@@ -82,6 +82,11 @@ export interface EncounterContext {
   openingBonus: number;
   /** Player's social awareness level, 0-4. */
   awareness: number;
+  /** Where the meters start, after memory, mood, reputation and gossip. */
+  startingInterest: number;
+  startingComfort: number;
+  /** Why they start there — shown as a cue before the first line. */
+  openingNotes: readonly string[];
 }
 
 export interface PresentedOption {

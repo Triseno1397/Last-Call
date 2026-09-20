@@ -120,8 +120,7 @@ export function createScriptedDialogueProvider(): DialogueProvider {
     async open(context: EncounterContext): Promise<ProviderTurn> {
       const startId = openingNodeId(context.memory.stage, context.character.dialogue.openings);
       const node = nodeOrThrow(context, startId);
-      const interest = context.memory.met ? context.memory.interest : context.character.baseInterest;
-      const comfort = context.character.baseComfort + Math.round(context.moodValue / 2);
+      const { startingInterest: interest, startingComfort: comfort } = context;
       const line = selectLine(node, context.mood, interest, context.memory.encounters);
 
       return {
