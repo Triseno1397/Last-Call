@@ -39,6 +39,8 @@ npm run build
 | `src/config/gameConfig.ts` | `CONTENT_RATING` and every balance number |
 | `src/types` | The shapes content and state must satisfy |
 | `src/engine` | Pure rules: progression, calendar, activity resolution, saves, RNG |
+| `src/engine/dialogue` | Conversation scoring, the scripted provider, the LLM provider stub |
+| `src/content/characters` | Characters and their dialogue trees |
 | `src/state` | Zustand store and UI selectors |
 | `src/ui` | Screens and components |
 | `src/test` | Unit tests |
@@ -50,13 +52,28 @@ npm run build
 - **Phase 1 (done)** — project setup, types, store, versioned save/load,
   character creation, stat system, calendar loop with activities. Create a
   character and live a week.
-- **Phase 2** — conversation engine with `ScriptedDialogueProvider`, awareness
-  mechanic, layered portraits with expressions, the bar, and one complete
-  character with a full dialogue tree.
+- **Phase 2 (done)** — the conversation engine behind a `DialogueProvider`
+  interface, `ScriptedDialogueProvider` with Sable's full dialogue tree, the
+  awareness mechanic, layered portraits with eight expressions, the bar with
+  darts, character memory and relationship stages, and the gallery.
 - **Phase 3** — the other two characters, the other two venues, memory,
   relationship stages, reputation.
 - **Phase 4** — phone and texting, dates, wingman, hobbies wired into dialogue.
 - **Phase 5** — polish: transitions, sound hooks, onboarding, balance pass.
+
+## The conversation system
+
+The game never reads a dialogue tree. It calls `open()` and `respond()` on a
+`DialogueProvider` and gets back her line, an expression, a body-language cue,
+interest and comfort deltas, and the next set of replies.
+
+- `ScriptedDialogueProvider` — ships, reads authored trees from `src/content`.
+- `LLMDialogueProvider` — a documented stub in `engine/dialogue/llmProvider.ts`.
+  Swapping it in is one line in `engine/encounter.ts`; nothing else changes.
+
+What the player can see of her state depends on their social awareness level:
+nothing at all at first (just her face and what she does with her hands), then
+words, then bars, then numbers, then the reasons behind each swing.
 
 ## Content rating
 

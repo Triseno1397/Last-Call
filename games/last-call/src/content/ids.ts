@@ -90,3 +90,85 @@ export type ActivityId = BaseActivityId | PracticeActivityId | ShopActivityId | 
  */
 export const CHARACTER_IDS = ['sable', 'wren', 'nadia'] as const;
 export type CharacterId = (typeof CHARACTER_IDS)[number];
+
+// --- Phase 2: conversation, characters, portraits -------------------------
+
+/** The only genders in the game, for the player and for characters. */
+export const GENDERS = ['man', 'woman'] as const;
+export type Gender = (typeof GENDERS)[number];
+
+/** What a reply *is*. Characters have preferences over these. */
+export const RESPONSE_TYPES = [
+  'joke',
+  'compliment',
+  'question',
+  'story',
+  'tease',
+  'sincere',
+  'bold',
+  'exit',
+] as const;
+export type ResponseType = (typeof RESPONSE_TYPES)[number];
+
+/**
+ * What a reply is *about*, or how it behaves. Characters like and dislike
+ * these; a dealbreaker is one of these.
+ */
+export const TOPIC_TAGS = [
+  'direct',
+  'flattery',
+  'bragging',
+  'negging',
+  'small_talk',
+  'banter',
+  'curiosity',
+  'vulnerable',
+  'innuendo',
+  'work',
+  'music',
+  'food',
+  'books',
+  'fitness',
+  'art',
+  'nightlife',
+  'family',
+  'rude_to_staff',
+  'lying',
+  'pushy',
+] as const;
+export type TopicTag = (typeof TOPIC_TAGS)[number];
+
+/** Portrait expressions. Every character needs art for all eight. */
+export const EXPRESSIONS = [
+  'neutral',
+  'amused',
+  'interested',
+  'bored',
+  'uncomfortable',
+  'annoyed',
+  'blushing',
+  'laughing',
+] as const;
+export type Expression = (typeof EXPRESSIONS)[number];
+
+export const RELATIONSHIP_STAGES = [
+  'stranger',
+  'acquaintance',
+  'interested',
+  'dating',
+  'relationship',
+  'friend',
+  'not_interested',
+] as const;
+export type RelationshipStage = (typeof RELATIONSHIP_STAGES)[number];
+
+/** How an encounter ended. Every one of these updates memory. */
+export const ENCOUNTER_OUTCOMES = [
+  'number',
+  'date_planned',
+  'friendly',
+  'rejected',
+  'she_left',
+  'you_left',
+] as const;
+export type EncounterOutcome = (typeof ENCOUNTER_OUTCOMES)[number];

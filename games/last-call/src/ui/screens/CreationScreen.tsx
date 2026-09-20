@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { FlawId, HobbyId, PerkId } from '@/content/ids';
+import type { FlawId, Gender, HobbyId, PerkId } from '@/content/ids';
 import type { Appearance } from '@/types/player';
 import type { AppearanceChoice } from '@/types/player';
 import { BUILDS, DEFAULT_APPEARANCE, EYE_COLORS, HAIR_COLORS, HAIR_STYLES, VIBES } from '@/content/appearance';
@@ -59,14 +59,22 @@ function OptionRow({
 export function CreationScreen() {
   const { beginGame, goToTitle } = useGameStore();
   const [name, setName] = useState('');
+  const [gender, setGender] = useState<Gender>('man');
   const [appearance, setAppearance] = useState<Appearance>({ ...DEFAULT_APPEARANCE });
   const [perks, setPerks] = useState<readonly PerkId[]>([]);
   const [flaw, setFlaw] = useState<FlawId | null>(null);
   const [hobby, setHobby] = useState<HobbyId>('guitar');
 
   const choices = useMemo(
-    () => ({ name, appearance, perks, flaw: (flaw ?? 'overthinker') as FlawId, startingHobby: hobby }),
-    [name, appearance, perks, flaw, hobby],
+    () => ({
+      name,
+      gender,
+      appearance,
+      perks,
+      flaw: (flaw ?? 'overthinker') as FlawId,
+      startingHobby: hobby,
+    }),
+    [name, gender, appearance, perks, flaw, hobby],
   );
 
   const problems = useMemo(() => {
@@ -110,6 +118,21 @@ export function CreationScreen() {
             placeholder="Your name"
             className="mt-1 w-full rounded-xl border border-ink-500/20 bg-night-900/80 px-3 py-2.5 font-display text-lg text-ink-100 outline-none placeholder:text-ink-600 focus:border-glow-400/60"
           />
+          <div className="mt-3 flex gap-2">
+            {(['man', 'woman'] as const).map((option) => (
+              <button
+                key={option}
+                onClick={() => setGender(option)}
+                className={`tap flex-1 rounded-xl border px-3 py-2 text-xs font-semibold capitalize ${
+                  gender === option
+                    ? 'border-glow-400 bg-glow-500/15 text-ink-100'
+                    : 'border-ink-500/20 bg-night-800/60 text-ink-300'
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
           {preview && (
             <p className="mt-2 text-xs text-ink-500">
               Starting out: ${preview.money} · {maxEnergy(preview)} max energy

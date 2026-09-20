@@ -9,10 +9,10 @@ older. Adult proportions, mature faces, adult fashion, adult settings. No school
 uniforms, no childlike designs. Ages are stored in character data and a unit test
 enforces 21+.
 
-> Status: this document is the contract for the art pipeline. The layered
-> portrait component, the placeholder assets and the gallery screen ship in
-> Phase 2 against exactly these names and sizes, so art commissioned now will
-> drop straight in.
+> Status: shipped. The layered portrait component and the gallery screen are
+> live, driving the SVG placeholders from the same outfit and expression ids
+> real art uses. Drop PNGs into `public/art/characters/<id>/` and the game
+> switches to them with no code change.
 
 ## Canvas sizes
 
@@ -106,6 +106,15 @@ so the gallery survives a reload.
 
 ## Placeholder art in the prototype
 
-Until final art lands, characters render as layered SVG/CSS portraits driven by
-the same expression and outfit ids. They are deliberately simple — the point is
+Until final art lands, characters render as layered SVG portraits built from the
+character's `palette` and the outfit's `palette`, driven by the same expression
+and outfit ids the real files use. They are deliberately simple — the point is
 that the swap is a file drop, not a refactor.
+
+The switch is automatic: on mount the portrait probes
+`/art/characters/<id>/base.png`. If it loads, the art path renders; if it 404s,
+the placeholder draws. Outfit and expression layers that are missing simply do
+not render, so a character with only `base.png` still works.
+
+Sable's outfit ids: `bar_shift` (worn at the bar), `off_shift` (anywhere that is
+not work), `date_green`, `after_hours`.

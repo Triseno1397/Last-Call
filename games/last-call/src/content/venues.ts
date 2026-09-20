@@ -30,6 +30,7 @@ export const VENUES: Readonly<Record<VenueId, VenueDef>> = {
       'The dartboard has a fresh hole in the wall beside it. Two inches left of history.',
       'A man at the end of the bar is explaining crypto to a woman who is explaining leaving.',
     ],
+    miniGame: 'darts',
   },
   margin_notes: {
     id: 'margin_notes',

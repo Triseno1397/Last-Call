@@ -1,9 +1,19 @@
-import type { ActivityId, StatId, VenueId } from '@/content/ids';
+import type { ActivityId, CharacterId, StatId, VenueId } from '@/content/ids';
+import type { CharacterMemory } from '@/types/character';
 import type { ContentRating, GameClock } from '@/types/core';
 import type { PlayerState } from '@/types/player';
 
 /** Screens the UI can be on. 'title' and 'creation' exist before a game does. */
-export type ScreenId = 'title' | 'creation' | 'city' | 'dayEnd' | 'weekEnd';
+export type ScreenId =
+  | 'title'
+  | 'creation'
+  | 'city'
+  | 'dayEnd'
+  | 'weekEnd'
+  | 'venue'
+  | 'encounter'
+  | 'encounterEnd'
+  | 'gallery';
 
 export type LogTone = 'neutral' | 'good' | 'bad' | 'flavour' | 'milestone';
 
@@ -39,6 +49,8 @@ export interface GameSettings {
 export interface GameState {
   clock: GameClock;
   player: PlayerState;
+  /** What each character remembers about the player. */
+  characters: Readonly<Partial<Record<CharacterId, CharacterMemory>>>;
   log: readonly LogEntry[];
   week: WeekSummary;
   /** The week that just ended, shown on the recap screen. */

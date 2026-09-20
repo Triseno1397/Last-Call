@@ -1,6 +1,7 @@
 import type {
   ApartmentId,
   FlawId,
+  Gender,
   HobbyId,
   JobId,
   PerkId,
@@ -52,6 +53,8 @@ export interface ConfidenceStreak {
 
 export interface PlayerState {
   name: string;
+  /** The game has two genders: man and woman. */
+  gender: Gender;
   appearance: Appearance;
   perks: readonly PerkId[];
   flaw: FlawId;

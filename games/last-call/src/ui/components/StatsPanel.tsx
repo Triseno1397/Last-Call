@@ -7,17 +7,10 @@ import { APARTMENTS, WARDROBE } from '@/content/lifestyle';
 import { FLAWS, PERKS } from '@/content/traits';
 import { HOBBY_IDS } from '@/content/ids';
 import { BALANCE } from '@/config/gameConfig';
+import { AWARENESS_BLURBS, effectiveAwareness } from '@/engine/awareness';
 import { Chip } from '@/ui/components/Chip';
 import { Meter } from '@/ui/components/Meter';
 import { PlayerPortrait } from '@/ui/components/PlayerPortrait';
-
-const AWARENESS_LABELS = [
-  'You cannot read a room to save your life.',
-  'You notice when someone checks their phone.',
-  'You read tone, timing and the pause before an answer.',
-  'You can tell interest from politeness. Mostly.',
-  'You see the whole conversation from above.',
-];
 
 export function StatsPanel({ game }: { game: GameState }) {
   const { player } = game;
@@ -72,7 +65,7 @@ export function StatsPanel({ game }: { game: GameState }) {
           Social awareness
         </h3>
         <p className="mt-2 text-sm text-ink-300">
-          Level {awareness.level}. {AWARENESS_LABELS[awareness.level] ?? AWARENESS_LABELS[0]}
+          Level {awareness.level}. {AWARENESS_BLURBS[effectiveAwareness(player)] ?? AWARENESS_BLURBS[0]}
         </p>
         <div className="mt-2">
           <Meter

@@ -1,4 +1,4 @@
-import type { FlawId, HobbyId, PerkId, StatId, WardrobeItemId } from '@/content/ids';
+import type { FlawId, Gender, HobbyId, PerkId, StatId, WardrobeItemId } from '@/content/ids';
 import type { Appearance, PlayerState } from '@/types/player';
 import type { GameState } from '@/types/game';
 import type { StatBlock } from '@/types/core';
@@ -18,6 +18,7 @@ import { clampStat } from '@/engine/progression';
 
 export interface CreationChoices {
   name: string;
+  gender: Gender;
   appearance: Appearance;
   perks: readonly PerkId[];
   flaw: FlawId;
@@ -39,6 +40,7 @@ export function validateCreation(choices: CreationChoices): readonly string[] {
   }
   if (!(choices.flaw in FLAWS)) problems.push('Pick a flaw. Everyone has one.');
   if (!HOBBY_IDS.includes(choices.startingHobby)) problems.push('Pick something you already do.');
+  if (choices.gender !== 'man' && choices.gender !== 'woman') problems.push('Pick man or woman.');
 
   const appearanceChecks: readonly [readonly { id: string }[], string, string][] = [
     [HAIR_STYLES, choices.appearance.hairStyle, 'hair style'],
@@ -103,6 +105,7 @@ export function createPlayer(choices: CreationChoices): PlayerState {
 
   const player: PlayerState = {
     name: choices.name.trim(),
+    gender: choices.gender,
     appearance: choices.appearance,
     perks: [...choices.perks],
     flaw: choices.flaw,
@@ -129,6 +132,7 @@ export function createNewGame(choices: CreationChoices, seed: number): GameState
   return {
     clock: { week: 1, dayIndex: 0, slotIndex: 0 },
     player,
+    characters: {},
     log: [
       {
         id: 'intro-0',

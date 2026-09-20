@@ -19,7 +19,7 @@ const TABS: readonly { id: Tab; label: string }[] = [
 
 export function CityScreen({ game }: { game: GameState }) {
   const [tab, setTab] = useState<Tab>('day');
-  const { doActivity, skip, notice, dismissNotice, goToTitle } = useGameStore();
+  const { doActivity, skip, notice, dismissNotice, goToTitle, openGallery } = useGameStore();
   const energy = energyReadout(game);
 
   useEffect(() => {
@@ -108,6 +108,9 @@ export function CityScreen({ game }: { game: GameState }) {
       {tab === 'log' && (
         <div className="flex flex-col gap-4">
           <LogFeed entries={game.log} />
+          <Button variant="quiet" onClick={openGallery}>
+            Gallery
+          </Button>
           <Button variant="quiet" onClick={goToTitle}>
             Back to title (progress is saved)
           </Button>

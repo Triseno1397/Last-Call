@@ -144,14 +144,112 @@ only scheduled when the venue is actually open.
 
 ## Adding a character
 
-Character ids live in `CHARACTER_IDS`. Character data files land in Phase 2/3
-(`src/content/characters/`), and the shape is already reserved: archetype,
-traits, bio, age (21+ — enforced by a test), likes, dislikes, one dealbreaker,
-interests, weekly schedule, mood range, memory and relationship stage.
+Two steps: add the id to `CHARACTER_IDS`, and write
+`src/content/characters/<id>.ts` exporting a `CharacterDef`. Register it in
+`src/content/characters/index.ts`. That is the whole job — no engine change.
 
-The rule the architecture exists to protect: **adding a character must not
-require an engine change.** A character is data plus a dialogue tree; the
-conversation engine reads both through the `DialogueProvider` interface.
+```ts
+export const WREN: CharacterDef = {
+  id: 'wren',
+  name: 'Wren',
+  age: 26,                              // 21+, enforced by a test
+  gender: 'woman',
+  archetype: 'The grad student with opinions',
+  tagline: 'annotates library books in pencil like a criminal',
+  bio: '...',
+  personality: ['curious', 'dry', 'impatient with bluffing'],
+  likes: ['curiosity', 'books', 'banter'],
+  dislikes: ['bragging', 'small_talk'],
+  dealbreaker: { tag: 'lying', line: 'You made something up and she caught it.' },
+  interests: ['photography'],
+  preferences: { question: 1.25, joke: 1.1, compliment: 0.7 },  // per reply type
+  statWeights: { culture: 1.3, humor: 1.1 },                    // stats she notices
+  homeVenue: 'margin_notes',
+  baseInterest: 15,
+  baseComfort: 60,
+  patience: 8,                          // turns before the conversation runs out
+  facts: [{ id: 'wren_thesis', text: 'Her thesis is two years late and she is fine.' }],
+  outfits: [...],                       // 3-4; see docs/ART_GUIDE.md
+  palette: {...},                       // placeholder portrait colours
+  knows: ['sable'],
+  dialogue,                             // the tree, below
+};
+```
+
+Then put her on a venue's `regulars` schedule so there is somewhere to find her.
+The content test enforces that a character is findable and that she is only
+scheduled when her venue is open.
+
+### Dialogue trees
+
+A tree is `openings` (which node to start on, by relationship stage) plus
+`nodes`. A node is her line — or several variants — and the replies.
+
+```ts
+const dialogue: DialogueTree = {
+  openings: { stranger: 'open_stranger', acquaintance: 'open_again' },
+  nodes: {
+    open_stranger: {
+      id: 'open_stranger',
+      lines: [
+        { mood: 'bad', text: '...', expression: 'bored', cue: 'She does not look up.' },
+        { text: '...', expression: 'neutral', cue: 'She marks her page with a receipt.' },
+      ],
+      options: [
+        {
+          id: 'ask_book',
+          type: 'question',                  // joke|compliment|question|story|
+          text: 'What is it?',               // tease|sincere|bold|exit
+          tags: ['curiosity', 'books'],      // scored against likes/dislikes
+          requires: [{ kind: 'stat', stat: 'culture', min: 40 }],
+          interest: 4,                       // authored baseline
+          comfort: 2,
+          learn: ['wren_thesis'],            // facts the player uncovers
+          tell: ['player_reads'],            // what she learns about him
+          next: 'hub',
+        },
+      ],
+    },
+    got_number: { id: 'got_number', lines: [...], outcome: 'number' },
+  },
+};
+```
+
+Rules the tests enforce:
+
+- every `next` points at a node that exists, and every node is reachable from an
+  opening — no orphans, no dead ends,
+- a node either has replies or an `outcome`, never both,
+- `learn` only names facts the character actually has,
+- line variants are filtered by `mood`, `minInterest`, `maxInterest` and
+  `minEncounters`; the **last** line in the list is the fallback, so always end
+  with an unconditional one.
+
+### How a reply is scored
+
+`engine/dialogue/scoring.ts`, and it is worth knowing when writing:
+
+```
+delta = authored baseline
+      x her preference for that reply type
+      + her likes/dislikes for the tags
+      + the stats she cares about, weighted by the venue
+      - a penalty if you have covered this topic with her before
+      x her mood that day
+```
+
+Comfort is separate and less forgiving: pushing while she is uncomfortable costs
+extra, and while comfort is under 30 any interest gained is halved. Comfort on
+the floor ends the conversation whatever the interest was. Her `dealbreaker` tag
+ends it permanently.
+
+### Which provider is running
+
+The game talks to a `DialogueProvider`, never to a tree.
+`ScriptedDialogueProvider` (the one that ships) reads the content above.
+`engine/dialogue/llmProvider.ts` is a documented stub for a model-backed
+provider; swapping it in is one line in `engine/encounter.ts`. Nothing else in
+the game knows which is active.
 
 ## Balance numbers
 

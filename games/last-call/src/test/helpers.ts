@@ -7,6 +7,7 @@ import { DEFAULT_APPEARANCE } from '@/content/appearance';
 export function choices(overrides: Partial<CreationChoices> = {}): CreationChoices {
   return {
     name: 'Ro',
+    gender: 'man',
     appearance: { ...DEFAULT_APPEARANCE },
     perks: ['quick_wit', 'thick_skin'] as readonly PerkId[],
     flaw: 'overthinker' as FlawId,

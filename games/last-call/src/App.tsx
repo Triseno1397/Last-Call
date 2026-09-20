@@ -5,10 +5,16 @@ import { CreationScreen } from '@/ui/screens/CreationScreen';
 import { CityScreen } from '@/ui/screens/CityScreen';
 import { DayEndScreen } from '@/ui/screens/DayEndScreen';
 import { WeekEndScreen } from '@/ui/screens/WeekEndScreen';
+import { VenueScreen } from '@/ui/screens/VenueScreen';
+import { EncounterScreen } from '@/ui/screens/EncounterScreen';
+import { EncounterEndScreen } from '@/ui/screens/EncounterEndScreen';
+import { GalleryScreen } from '@/ui/screens/GalleryScreen';
 
 export function App(): ReactElement {
   const screen = useGameStore((store) => store.screen);
   const game = useGameStore((store) => store.game);
+  const visit = useGameStore((store) => store.visit);
+  const encounter = useGameStore((store) => store.encounter);
 
   // A new screen always starts at the top, however far down the last one was.
   useEffect(() => {
@@ -18,10 +24,24 @@ export function App(): ReactElement {
   const body = (): ReactElement => {
     if (screen === 'creation') return <CreationScreen />;
     if (!game) return <TitleScreen />;
-    if (screen === 'dayEnd') return <DayEndScreen game={game} />;
-    if (screen === 'weekEnd') return <WeekEndScreen game={game} />;
-    if (screen === 'city') return <CityScreen game={game} />;
-    return <TitleScreen />;
+    switch (screen) {
+      case 'dayEnd':
+        return <DayEndScreen game={game} />;
+      case 'weekEnd':
+        return <WeekEndScreen game={game} />;
+      case 'venue':
+        return visit ? <VenueScreen game={game} visit={visit} /> : <CityScreen game={game} />;
+      case 'encounter':
+        return <EncounterScreen game={game} encounter={encounter} />;
+      case 'encounterEnd':
+        return <EncounterEndScreen game={game} encounter={encounter} />;
+      case 'gallery':
+        return <GalleryScreen game={game} />;
+      case 'city':
+        return <CityScreen game={game} />;
+      default:
+        return <TitleScreen />;
+    }
   };
 
   return (

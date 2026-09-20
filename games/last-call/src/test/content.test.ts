@@ -4,7 +4,10 @@ import { HOBBIES } from '@/content/hobbies';
 import { APARTMENTS, JOBS, WARDROBE } from '@/content/lifestyle';
 import { FLAW_LIST, PERK_LIST } from '@/content/traits';
 import { VENUE_LIST, VENUES } from '@/content/venues';
-import { CHARACTER_IDS, HOBBY_IDS, STAT_IDS, VENUE_IDS } from '@/content/ids';
+import { CHARACTER_IDS, EXPRESSIONS, HOBBY_IDS, STAT_IDS, TOPIC_TAGS, VENUE_IDS } from '@/content/ids';
+import { CHARACTER_LIST } from '@/content/characters';
+import { whereToFind } from '@/engine/characters';
+import { MINIMUM_CHARACTER_AGE } from '@/config/gameConfig';
 
 /**
  * Content integrity. These catch the mistakes that are easy to make when adding
@@ -126,6 +129,111 @@ describe('lifestyle ladders', () => {
   it('gives every hobby a stat affinity', () => {
     for (const hobby of Object.values(HOBBIES)) {
       expect(STAT_IDS).toContain(hobby.affinity);
+    }
+  });
+});
+
+// --- Phase 2: characters and dialogue -------------------------------------
+
+describe('characters', () => {
+  it('are all adults and all women', () => {
+    for (const character of CHARACTER_LIST) {
+      expect(character.age).toBeGreaterThanOrEqual(MINIMUM_CHARACTER_AGE);
+      expect(character.gender).toBe('woman');
+    }
+  });
+
+  it('have a dealbreaker, likes, dislikes and somewhere to be found', () => {
+    for (const character of CHARACTER_LIST) {
+      expect(character.likes.length).toBeGreaterThan(0);
+      expect(character.dislikes.length).toBeGreaterThan(0);
+      expect(TOPIC_TAGS).toContain(character.dealbreaker.tag);
+      expect(character.dealbreaker.line.length).toBeGreaterThan(10);
+      expect(VENUES[character.homeVenue]).toBeDefined();
+      expect(whereToFind(character).length).toBeGreaterThan(0);
+    }
+  });
+
+  it('have at least three outfits, one of them worn at a venue', () => {
+    for (const character of CHARACTER_LIST) {
+      expect(character.outfits.length).toBeGreaterThanOrEqual(3);
+      expect(character.outfits.some((outfit) => outfit.worn.length > 0)).toBe(true);
+    }
+  });
+});
+
+describe('dialogue trees', () => {
+  it('only point at nodes that exist', () => {
+    for (const character of CHARACTER_LIST) {
+      const { nodes, openings } = character.dialogue;
+      for (const opening of Object.values(openings)) {
+        if (opening) expect(nodes[opening]).toBeDefined();
+      }
+      for (const node of Object.values(nodes)) {
+        for (const option of node.options ?? []) {
+          expect(nodes[option.next], `${character.id}: ${option.id} -> ${option.next}`).toBeDefined();
+        }
+      }
+    }
+  });
+
+  it('give every node a line, and every ending an outcome with no replies', () => {
+    for (const character of CHARACTER_LIST) {
+      for (const node of Object.values(character.dialogue.nodes)) {
+        expect(node.lines.length, `${character.id}:${node.id}`).toBeGreaterThan(0);
+        for (const line of node.lines) {
+          expect(EXPRESSIONS).toContain(line.expression);
+          expect(line.text.length).toBeGreaterThan(0);
+        }
+        if (node.outcome) {
+          expect(node.options ?? []).toHaveLength(0);
+        } else {
+          expect((node.options ?? []).length, `${character.id}:${node.id} is a dead end`).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
+  it('only teach facts the character actually has', () => {
+    for (const character of CHARACTER_LIST) {
+      const factIds = character.facts.map((fact) => fact.id);
+      for (const node of Object.values(character.dialogue.nodes)) {
+        for (const option of node.options ?? []) {
+          for (const fact of option.learn ?? []) {
+            expect(factIds, `${character.id}: ${option.id} teaches ${fact}`).toContain(fact);
+          }
+          for (const tag of option.tags ?? []) {
+            expect(TOPIC_TAGS).toContain(tag);
+          }
+        }
+      }
+    }
+  });
+
+  it('can be reached: every node hangs off an opening', () => {
+    for (const character of CHARACTER_LIST) {
+      const { nodes, openings } = character.dialogue;
+      const seen = new Set<string>();
+      const queue = Object.values(openings).filter((id): id is string => Boolean(id));
+      while (queue.length > 0) {
+        const id = queue.pop() as string;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        for (const option of nodes[id]?.options ?? []) queue.push(option.next);
+      }
+      for (const id of Object.keys(nodes)) {
+        expect(seen, `${character.id}: node "${id}" is unreachable`).toContain(id);
+      }
+    }
+  });
+
+  it('give the player a way out of every node', () => {
+    for (const character of CHARACTER_LIST) {
+      for (const node of Object.values(character.dialogue.nodes)) {
+        if (node.outcome) continue;
+        const ids = (node.options ?? []).map((option) => option.id);
+        expect(new Set(ids).size, `${character.id}:${node.id} has duplicate option ids`).toBe(ids.length);
+      }
     }
   });
 });

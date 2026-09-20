@@ -27,6 +27,15 @@ const MIGRATIONS: Readonly<Record<number, Migration>> = {
       player: { ...player, venueReputation: player['venueReputation'] ?? {} },
     };
   },
+  // 1 -> 2: the player has a gender, and characters remember you.
+  1: (state) => {
+    const player = (state['player'] ?? {}) as Record<string, unknown>;
+    return {
+      ...state,
+      characters: state['characters'] ?? {},
+      player: { ...player, gender: player['gender'] ?? 'man' },
+    };
+  },
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

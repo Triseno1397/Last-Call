@@ -27,4 +27,6 @@ export interface VenueDef {
   regulars: readonly VenueScheduleEntry[];
   /** Ambient lines shown when the player walks in. */
   atmosphere: readonly string[];
+  /** The venue's one mini-game, if it has one. Winning helps the next chat. */
+  miniGame?: 'darts';
 }

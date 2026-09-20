@@ -370,17 +370,39 @@ export interface ActivityResult {
   reasons: readonly string[];
   dayRolled: boolean;
   weekRolled: boolean;
+  /** Slots still owed when the clock was deferred (going out to a venue). */
+  pendingSlots: number;
+}
+
+export interface PerformOptions {
+  /**
+   * Hold the clock still after resolving. Used when going out: the night runs
+   * in the venue, and the slot is spent when the player leaves.
+   */
+  deferClock?: boolean;
 }
 
 /**
  * Resolve one activity: pay its costs, apply its effects, advance the clock.
  * Pure — hand it a state and an RNG, get a new state back.
  */
-export function performActivity(state: GameState, activityId: ActivityId, rng: Rng): ActivityResult {
+export function performActivity(
+  state: GameState,
+  activityId: ActivityId,
+  rng: Rng,
+  options: PerformOptions = {},
+): ActivityResult {
   const activity = getActivity(activityId);
   const availability = checkAvailability(state, activity);
   if (!availability.ok) {
-    return { ok: false, state, reasons: availability.reasons, dayRolled: false, weekRolled: false };
+    return {
+      ok: false,
+      state,
+      reasons: availability.reasons,
+      dayRolled: false,
+      weekRolled: false,
+      pendingSlots: 0,
+    };
   }
 
   const cost = resolveCost(state.player, activity);
@@ -424,6 +446,17 @@ export function performActivity(state: GameState, activityId: ActivityId, rng: R
   const ceiling = maxEnergy(next.player);
   next = { ...next, player: { ...next.player, energy: Math.max(0, Math.min(ceiling, next.player.energy)) } };
 
+  if (options.deferClock) {
+    return {
+      ok: true,
+      state: appendLog(next, entries),
+      reasons: [],
+      dayRolled: false,
+      weekRolled: false,
+      pendingSlots: cost.slots,
+    };
+  }
+
   const advanced = advanceSlots(next, cost.slots, rng);
   next = appendLog(advanced.state, [...entries, ...advanced.entries]);
 
@@ -433,6 +466,7 @@ export function performActivity(state: GameState, activityId: ActivityId, rng: R
     reasons: [],
     dayRolled: advanced.dayRolled,
     weekRolled: advanced.weekRolled,
+    pendingSlots: 0,
   };
 }
 
@@ -452,5 +486,6 @@ export function skipSlot(state: GameState, rng: Rng): ActivityResult {
     reasons: [],
     dayRolled: advanced.dayRolled,
     weekRolled: advanced.weekRolled,
+    pendingSlots: 0,
   };
 }
