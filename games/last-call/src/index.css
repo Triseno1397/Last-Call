@@ -1,0 +1,106 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-night-950: #05040d;
+  --color-night-900: #0b0918;
+  --color-night-850: #110e22;
+  --color-night-800: #17142d;
+  --color-night-700: #221e3f;
+  --color-night-600: #2f2a55;
+  --color-ink-100: #f2eefc;
+  --color-ink-300: #cfc7e6;
+  --color-ink-500: #9a92b8;
+  --color-ink-600: #7a7296;
+
+  --color-neon-400: #ff5fa8;
+  --color-neon-500: #f5348c;
+  --color-glow-400: #4fd6ff;
+  --color-glow-500: #17b6e8;
+  --color-gold-400: #ffce6b;
+  --color-lime-400: #96e07a;
+  --color-alarm-400: #ff7a6b;
+
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(120% 80% at 10% -10%, rgba(245, 52, 140, 0.18), transparent 60%),
+    radial-gradient(100% 70% at 90% 0%, rgba(23, 182, 232, 0.16), transparent 55%),
+    var(--color-night-950);
+  color: var(--color-ink-100);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer utilities {
+  .panel {
+    background: linear-gradient(160deg, rgba(34, 30, 63, 0.9), rgba(11, 9, 24, 0.92));
+    border: 1px solid rgba(154, 146, 184, 0.18);
+    border-radius: 1rem;
+    box-shadow: 0 18px 45px -30px rgba(0, 0, 0, 0.9);
+  }
+
+  .panel-flat {
+    background: rgba(17, 14, 34, 0.78);
+    border: 1px solid rgba(154, 146, 184, 0.14);
+    border-radius: 0.875rem;
+  }
+
+  .neon-text {
+    text-shadow: 0 0 18px rgba(255, 95, 168, 0.55);
+  }
+
+  .hairline {
+    border-color: rgba(154, 146, 184, 0.16);
+  }
+
+  .tap {
+    transition:
+      transform 140ms ease,
+      border-color 140ms ease,
+      background-color 140ms ease;
+  }
+
+  .tap:active {
+    transform: scale(0.985);
+  }
+
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Animate transform and opacity only, and not at all if the player prefers. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.rise-in {
+  animation: rise-in 220ms ease-out both;
+}
