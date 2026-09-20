@@ -9,12 +9,15 @@ import { VenueScreen } from '@/ui/screens/VenueScreen';
 import { EncounterScreen } from '@/ui/screens/EncounterScreen';
 import { EncounterEndScreen } from '@/ui/screens/EncounterEndScreen';
 import { GalleryScreen } from '@/ui/screens/GalleryScreen';
+import { PhoneScreen } from '@/ui/screens/PhoneScreen';
+import { ThreadScreen } from '@/ui/screens/ThreadScreen';
 
 export function App(): ReactElement {
   const screen = useGameStore((store) => store.screen);
   const game = useGameStore((store) => store.game);
   const visit = useGameStore((store) => store.visit);
   const encounter = useGameStore((store) => store.encounter);
+  const openThreadId = useGameStore((store) => store.openThreadId);
 
   // A new screen always starts at the top, however far down the last one was.
   useEffect(() => {
@@ -32,7 +35,16 @@ export function App(): ReactElement {
       case 'venue':
         return visit ? <VenueScreen game={game} visit={visit} /> : <CityScreen game={game} />;
       case 'encounter':
+      case 'date':
         return <EncounterScreen game={game} encounter={encounter} />;
+      case 'phone':
+        return <PhoneScreen game={game} />;
+      case 'thread':
+        return openThreadId ? (
+          <ThreadScreen game={game} threadId={openThreadId} />
+        ) : (
+          <PhoneScreen game={game} />
+        );
       case 'encounterEnd':
         return <EncounterEndScreen game={game} encounter={encounter} />;
       case 'gallery':

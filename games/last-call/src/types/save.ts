@@ -1,7 +1,7 @@
 import type { GameState } from '@/types/game';
 
 /** Bump when the shape of GameState changes; add a migration alongside it. */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export interface SaveEnvelope {
   version: number;

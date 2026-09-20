@@ -3,6 +3,9 @@ import type { GameState } from '@/types/game';
 import { DAY_LABELS, SLOT_LABELS, currentDay, currentSlot, slotsRemainingToday } from '@/engine/calendar';
 import { activitiesByCategory, CATEGORY_LABELS, energyReadout } from '@/state/selectors';
 import { useGameStore } from '@/state/gameStore';
+import { DATE_IDEAS } from '@/content/dateIdeas';
+import { getCharacter } from '@/content/characters';
+import { dateDueNow } from '@/engine/dates';
 import { ActivityCard } from '@/ui/components/ActivityCard';
 import { Button } from '@/ui/components/Button';
 import { LogFeed } from '@/ui/components/LogFeed';
@@ -19,7 +22,10 @@ const TABS: readonly { id: Tab; label: string }[] = [
 
 export function CityScreen({ game }: { game: GameState }) {
   const [tab, setTab] = useState<Tab>('day');
-  const { doActivity, skip, notice, dismissNotice, goToTitle, openGallery } = useGameStore();
+  const { doActivity, skip, notice, dismissNotice, goToTitle, openGallery, openPhone, startDate } =
+    useGameStore();
+  const dueDate = dateDueNow(game);
+  const unread = Object.values(game.phone.threads).some((thread) => thread?.unread);
   const energy = energyReadout(game);
 
   useEffect(() => {
@@ -83,6 +89,21 @@ export function CityScreen({ game }: { game: GameState }) {
 
       {tab === 'day' && (
         <div className="flex flex-col gap-6">
+          {dueDate && (
+            <button
+              onClick={() => void startDate()}
+              className="tap rounded-2xl border border-neon-400/60 bg-neon-500/10 p-4 text-left"
+            >
+              <p className="font-display text-xs uppercase tracking-[0.2em] text-neon-400">Tonight</p>
+              <h3 className="font-display text-lg font-semibold">
+                {getCharacter(dueDate.characterId).name} — {DATE_IDEAS[dueDate.ideaId].name}
+              </h3>
+              <p className="text-sm text-ink-300">{DATE_IDEAS[dueDate.ideaId].where}</p>
+              <p className="mt-1 text-xs text-gold-400">
+                ${DATE_IDEAS[dueDate.ideaId].cost} · {DATE_IDEAS[dueDate.ideaId].energy} energy
+              </p>
+            </button>
+          )}
           {activitiesByCategory(game).map((group) => (
             <section key={group.category} className="flex flex-col gap-2">
               <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-ink-500">
@@ -97,6 +118,9 @@ export function CityScreen({ game }: { game: GameState }) {
               ))}
             </section>
           ))}
+          <Button variant="ghost" onClick={openPhone}>
+            Phone{unread ? ' · 1 new' : ''}
+          </Button>
           <Button variant="quiet" onClick={skip} className="mb-2">
             Let the {SLOT_LABELS[slot].toLowerCase()} go by
           </Button>

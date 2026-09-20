@@ -40,7 +40,7 @@ npm run build
 | `src/types` | The shapes content and state must satisfy |
 | `src/engine` | Pure rules: progression, calendar, activity resolution, saves, RNG |
 | `src/engine/dialogue` | Conversation scoring, the scripted provider, the LLM provider stub |
-| `src/content/characters` | Characters and their dialogue trees |
+| `src/content/characters` | Characters, their dialogue trees and their date scenes |
 | `src/state` | Zustand store and UI selectors |
 | `src/ui` | Screens and components |
 | `src/test` | Unit tests |
@@ -56,9 +56,12 @@ npm run build
   interface, `ScriptedDialogueProvider` with Sable's full dialogue tree, the
   awareness mechanic, layered portraits with eight expressions, the bar with
   darts, character memory and relationship stages, and the gallery.
-- **Phase 3** — the other two characters, the other two venues, memory,
-  relationship stages, reputation.
-- **Phase 4** — phone and texting, dates, wingman, hobbies wired into dialogue.
+- **Phase 3 (done)** — Wren and Nadia with full dialogue trees, the bookshop and
+  the gym running encounters, venue reputation, and gossip between characters
+  who know each other.
+- **Phase 4 (done)** — the phone: contacts, texting with tone and cadence, she
+  texts first when she is interested, asking her out, a planned date that lands
+  on the calendar, one full date scene per character, and Dez the wingman.
 - **Phase 5** — polish: transitions, sound hooks, onboarding, balance pass.
 
 ## The conversation system
@@ -74,6 +77,13 @@ interest and comfort deltas, and the next set of replies.
 What the player can see of her state depends on their social awareness level:
 nothing at all at first (just her face and what she does with her hands), then
 words, then bars, then numbers, then the reasons behind each swing.
+
+## The week, end to end
+
+Work and train and read to become someone worth talking to. Go out on a night
+she is there. Read her face, because the meters are not there yet. Get a number.
+Text with some timing. Ask her out to something she would actually like. Turn
+up. Do not turn up and she will tell you about it.
 
 ## Content rating
 

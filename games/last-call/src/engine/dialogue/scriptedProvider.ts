@@ -103,8 +103,14 @@ function openingNodeId(stage: RelationshipStage, openings: Record<string, string
   return openings[stage] ?? openings['stranger'] ?? 'open_stranger';
 }
 
+function treeOf(context: EncounterContext) {
+  return context.mode === 'date' && context.character.dateDialogue
+    ? context.character.dateDialogue
+    : context.character.dialogue;
+}
+
 function nodeOrThrow(context: EncounterContext, id: string): DialogueNode {
-  const node = context.character.dialogue.nodes[id];
+  const node = treeOf(context).nodes[id];
   if (!node) throw new Error(`${context.character.name}: dialogue node "${id}" does not exist`);
   return node;
 }
@@ -118,7 +124,7 @@ export function createScriptedDialogueProvider(): DialogueProvider {
     id: 'scripted',
 
     async open(context: EncounterContext): Promise<ProviderTurn> {
-      const startId = openingNodeId(context.memory.stage, context.character.dialogue.openings);
+      const startId = openingNodeId(context.memory.stage, treeOf(context).openings);
       const node = nodeOrThrow(context, startId);
       const { startingInterest: interest, startingComfort: comfort } = context;
       const line = selectLine(node, context.mood, interest, context.memory.encounters);

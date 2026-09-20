@@ -855,6 +855,352 @@ const dialogue: DialogueTree = {
   },
 };
 
+/** Her date tree: she has overthought this and is determined not to show it. */
+const dateDialogue: DialogueTree = {
+  openings: {
+    stranger: 'arrive',
+    acquaintance: 'arrive',
+    interested: 'arrive',
+    dating: 'arrive_again',
+  },
+  nodes: {
+    arrive: {
+      id: 'arrive',
+      lines: [
+        {
+          text: "I changed four times. I'm telling you that immediately so it stops being a secret I'm carrying around all evening.",
+          expression: 'blushing',
+          cue: 'No book. No bag, even. She looks slightly unarmed.',
+        },
+      ],
+      options: [
+        {
+          id: 'arrive_match',
+          type: 'sincere',
+          text: "I changed twice and practised a sentence in the mirror. We're even.",
+          tags: ['vulnerable', 'direct'],
+          interest: 8,
+          comfort: 6,
+          next: 'scene_one',
+        },
+        {
+          id: 'arrive_joke',
+          type: 'joke',
+          text: "Four times. So this outfit is the winner of a tournament. It should get a small trophy.",
+          tags: ['banter'],
+          interest: 7,
+          comfort: 5,
+          next: 'scene_one',
+        },
+        {
+          id: 'arrive_compliment',
+          type: 'compliment',
+          text: "Well it worked. You look amazing.",
+          tags: ['flattery'],
+          interest: -2,
+          comfort: 1,
+          next: 'scene_one',
+        },
+      ],
+    },
+
+    arrive_again: {
+      id: 'arrive_again',
+      lines: [
+        {
+          text: "I didn't change at all this time. That's growth. Document it.",
+          expression: 'amused',
+          cue: 'She is already sitting down, already mid-thought, already easier with you.',
+        },
+      ],
+      options: [
+        {
+          id: 'again_note',
+          type: 'tease',
+          text: "Documented. Filed under 'Wren, improvements to'.",
+          tags: ['banter'],
+          interest: 7,
+          comfort: 5,
+          next: 'scene_one',
+        },
+        {
+          id: 'again_warm',
+          type: 'sincere',
+          text: "You seem easier tonight. I like it.",
+          tags: ['direct'],
+          interest: 8,
+          comfort: 6,
+          next: 'scene_one',
+        },
+      ],
+    },
+
+    scene_one: {
+      id: 'scene_one',
+      lines: [
+        {
+          mood: 'bad',
+          text: "Fair warning: four hours of sleep and a supervisor email. I am running on the worst possible fuel.",
+          expression: 'bored',
+          cue: 'She came anyway, on four hours, after that email.',
+        },
+        {
+          text: "Right. I've got three conversational openers and they're all about the shelving system, which tells you everything.",
+          expression: 'interested',
+          cue: 'She is talking with her hands already. Good sign, if an early one.',
+        },
+      ],
+      options: [
+        {
+          id: 'one_shelving',
+          type: 'joke',
+          text: "Lead with the shelving. I want the whole thing, unabridged, with diagrams.",
+          tags: ['banter', 'books'],
+          interest: 7,
+          comfort: 5,
+          next: 'the_bit',
+        },
+        {
+          id: 'one_real',
+          type: 'question',
+          text: "Skip the openers. What's the thing you actually want to talk about tonight?",
+          tags: ['curiosity', 'direct'],
+          interest: 8,
+          comfort: 4,
+          next: 'the_real_thing',
+        },
+        {
+          id: 'one_email',
+          type: 'sincere',
+          text: "Forget the email for two hours. It'll still be insufferable later.",
+          tags: ['direct'],
+          interest: 7,
+          comfort: 7,
+          next: 'the_bit',
+        },
+      ],
+    },
+
+    the_bit: {
+      id: 'the_bit',
+      lines: [
+        {
+          text: "The shelving is a moral position and I will die on this hill. Poetry under travel. Cookbooks in fantasy. The self-help section, which should simply be a mirror.",
+          expression: 'laughing',
+          cue: 'She is fully going now. This is the version of her nobody at the shop gets.',
+        },
+      ],
+      topics: ['books', 'banter'],
+      options: [
+        {
+          id: 'bit_build',
+          type: 'joke',
+          text: "And true crime goes under local history, depending on the town.",
+          tags: ['banter'],
+          interest: 8,
+          comfort: 6,
+          next: 'the_real_thing',
+        },
+        {
+          id: 'bit_watch',
+          type: 'sincere',
+          text: "You're properly happy right now. I'd like to see that more often.",
+          tags: ['direct', 'vulnerable'],
+          interest: 9,
+          comfort: 7,
+          next: 'the_real_thing',
+        },
+      ],
+    },
+
+    the_real_thing: {
+      id: 'the_real_thing',
+      lines: [
+        {
+          minInterest: 65,
+          text: "Fine. The real thing: I've been two years late on this thesis because finishing it means deciding what I am, and I'd rather stay a person who's about to be something.",
+          expression: 'uncomfortable',
+          cue: 'She said it fast and then looked at the table, and then made herself look back up.',
+        },
+        {
+          text: "The real thing is that I talk a lot when I'm nervous and I have been talking for nineteen minutes. Your turn. Say something true.",
+          expression: 'interested',
+          cue: 'She physically sits on her hands.',
+        },
+      ],
+      topics: ['vulnerable', 'work'],
+      options: [
+        {
+          id: 'real_sit',
+          type: 'sincere',
+          text: "Then stay one a bit longer. There's no prize for finishing early and you're not late to anything that matters.",
+          tags: ['direct', 'vulnerable'],
+          interest: 11,
+          comfort: 9,
+          learn: ['wren_thesis'],
+          next: 'scene_two',
+        },
+        {
+          id: 'real_mine',
+          type: 'story',
+          text: "True thing: I go out on nights like this so I don't have to be in my flat being quietly twenty-nine.",
+          tags: ['vulnerable'],
+          interest: 9,
+          comfort: 7,
+          tell: ['player_lonely'],
+          next: 'scene_two',
+        },
+        {
+          id: 'real_fix',
+          type: 'story',
+          text: "You just need a deadline and a spreadsheet. Honestly, three weeks and it's done.",
+          tags: ['pushy', 'bragging'],
+          interest: -10,
+          comfort: -8,
+          next: 'date_sours',
+        },
+      ],
+    },
+
+    scene_two: {
+      id: 'scene_two',
+      lines: [
+        {
+          minInterest: 72,
+          text: "I'm going to say this while I have the nerve: I've been looking forward to this since Tuesday, in a way I would describe as undignified.",
+          expression: 'blushing',
+          cue: 'Somewhere in the last hour she stopped performing at all.',
+        },
+        {
+          text: "This has been better than the version of it I rehearsed, which is rare, because the rehearsed ones are usually excellent.",
+          expression: 'interested',
+          cue: 'She has finished her drink without once checking her phone.',
+        },
+      ],
+      options: [
+        {
+          id: 'two_match',
+          type: 'sincere',
+          text: "Undignified is the good part. I've been counting days like a teenager.",
+          tags: ['direct', 'vulnerable'],
+          interest: 9,
+          comfort: 7,
+          next: 'walk_home',
+        },
+        {
+          id: 'two_tease',
+          type: 'tease',
+          text: "So I beat a rehearsal. I'd like that in writing, in pencil, in the margin.",
+          tags: ['banter'],
+          interest: 8,
+          comfort: 6,
+          next: 'walk_home',
+        },
+      ],
+    },
+
+    walk_home: {
+      id: 'walk_home',
+      lines: [
+        {
+          minInterest: 75,
+          text: "Walk me to the corner. Not the door, the corner — I need eleven minutes to stop being embarrassed before my flatmate sees my face.",
+          expression: 'blushing',
+          cue: 'She takes your arm on the second street without making a thing of it.',
+        },
+        {
+          text: "Right. This was good. I'd like to do it again before I've had time to overthink it, please.",
+          expression: 'interested',
+          cue: 'The pause goes on slightly too long, in the best way.',
+        },
+      ],
+      options: [
+        {
+          id: 'home_kiss',
+          type: 'bold',
+          text: "Eleven minutes. I'll use one of them.",
+          tags: ['direct', 'innuendo'],
+          requires: [
+            { kind: 'interest', min: 66 },
+            { kind: 'comfort', min: 62 },
+          ],
+          interest: 8,
+          comfort: 2,
+          next: 'end_great',
+        },
+        {
+          id: 'home_soon',
+          type: 'sincere',
+          text: "Saturday. Before either of us overthinks anything.",
+          tags: ['direct'],
+          interest: 6,
+          comfort: 6,
+          next: 'end_good',
+        },
+        {
+          id: 'home_push',
+          type: 'bold',
+          text: "Or we skip the corner and I come up.",
+          tags: ['pushy'],
+          interest: -6,
+          comfort: -10,
+          next: 'end_cold',
+        },
+      ],
+    },
+
+    date_sours: {
+      id: 'date_sours',
+      lines: [
+        {
+          text: "Right. A spreadsheet. Yes. Sorry — can we talk about literally anything else, I've gone a bit flat.",
+          expression: 'bored',
+          cue: 'She has picked her phone up off the table. That is the end of the good part.',
+        },
+      ],
+      outcome: 'friendly',
+      topics: ['pushy'],
+    },
+
+    end_great: {
+      id: 'end_great',
+      lines: [
+        {
+          text: "Oh — good. Yes. Good.",
+          expression: 'blushing',
+          cue: 'She kisses you on a corner under a broken streetlight and laughs halfway through, and the rest of the night is nobody else’s business.',
+        },
+      ],
+      outcome: 'date_planned',
+    },
+
+    end_good: {
+      id: 'end_good',
+      lines: [
+        {
+          text: "Saturday. Yes. I'm going to go inside now and be extremely normal about this.",
+          expression: 'amused',
+          cue: 'She walks backwards for six steps, then gives up and turns round grinning.',
+        },
+      ],
+      outcome: 'date_planned',
+    },
+
+    end_cold: {
+      id: 'end_cold',
+      lines: [
+        {
+          text: "No — sorry, no. That turned a corner faster than I wanted and I'd rather be honest than polite.",
+          expression: 'uncomfortable',
+          cue: 'She steps back to a normal distance and stays there.',
+        },
+      ],
+      outcome: 'rejected',
+      topics: ['pushy'],
+    },
+  },
+};
+
 export const WREN: CharacterDef = {
   id: 'wren',
   name: 'Wren',
@@ -887,12 +1233,12 @@ export const WREN: CharacterDef = {
   baseComfort: 62,
   patience: 8,
   facts: [
-    { id: 'wren_marginalia', text: 'She annotates library books in pencil and considers this a public service.', unlocks: ['books'] },
-    { id: 'wren_thesis', text: "Her thesis is on urban loneliness and is two years late. She is enjoying it." },
-    { id: 'wren_film', text: 'She shoots film. Thirty-six pictures, three weeks of not knowing.', unlocks: ['art'] },
-    { id: 'wren_climbs', text: 'She climbs at Ironhaus on Sundays, where nobody asks about the thesis.', unlocks: ['fitness'] },
-    { id: 'wren_insomnia', text: 'Four hours a night. She calls it a routine to avoid calling it a problem.' },
-    { id: 'wren_coffee', text: 'She orders the second-cheapest coffee out of principle. Avoid the americano.' },
+    { id: 'wren_marginalia', text: 'She annotates library books in pencil and considers this a public service.', unlocks: ['books'] , callback: 'Found a pencil note in a library book today and thought of you, criminal.' },
+    { id: 'wren_thesis', text: "Her thesis is on urban loneliness and is two years late. She is enjoying it." , callback: 'How is urban loneliness coming along? The thesis, not the condition.' },
+    { id: 'wren_film', text: 'She shoots film. Thirty-six pictures, three weeks of not knowing.', unlocks: ['art'] , callback: 'Has the roll come back yet or are you still in the three weeks of not knowing?' },
+    { id: 'wren_climbs', text: 'She climbs at Ironhaus on Sundays, where nobody asks about the thesis.', unlocks: ['fitness'] , callback: 'How were the Sunday problems? Did anybody shout encouragement at a stranger?' },
+    { id: 'wren_insomnia', text: 'Four hours a night. She calls it a routine to avoid calling it a problem.' , callback: 'Four hours again, or did you manage an outrageous five?' },
+    { id: 'wren_coffee', text: 'She orders the second-cheapest coffee out of principle. Avoid the americano.' , callback: 'Ordered the second-cheapest coffee today. Out of principle. Yours.' },
   ],
   outfits: [
     {
@@ -932,5 +1278,54 @@ export const WREN: CharacterDef = {
     background: '#1a2233',
   },
   knows: ['nadia'],
+  texts: {
+    replies: {
+      playful: {
+        good: [
+          "Ha! Right, I'm stealing that and using it on my supervisor.",
+          "That's the second-best thing anyone has sent me today and the first was a photo of a dog.",
+        ],
+        bad: ["Ha. Sorry — deep in a chapter, brain is elsewhere."],
+      },
+      warm: {
+        good: [
+          "That's very kind and I'm going to sit with it for a minute like a cat in a sunbeam.",
+          "You are surprisingly good at saying things directly. I'm taking notes.",
+        ],
+        bad: ["Thank you! Sorry. Bad sleep, low battery, both mine and the phone's."],
+      },
+      direct: {
+        good: [
+          "Yes. Ask properly and I'll say yes properly.",
+          "Efficient. I respect it. Also yes.",
+        ],
+        bad: ["That's a lot of certainty for a Tuesday. Let me have a think."],
+      },
+      callback: {
+        good: [
+          "YOU REMEMBERED THE FOOTNOTE. Sorry. Caps. But you did.",
+          "See, that's the thing — nobody remembers the bit I actually cared about. You did.",
+        ],
+        bad: ["Not quite, but I'm charmed that you tried."],
+      },
+    },
+    opens: [
+      "Found a 2011 marginal note that says 'this is nonsense' and I have never agreed with a stranger more. Anyway. Hello.",
+      "I have been awake since four and I have a theory about bus stops. Are you free or are you busy",
+      "Second-cheapest coffee, corner table, no thoughts. Come and interrupt me.",
+    ],
+    acceptsDate: [
+      "Yes. And I'm going to overthink what to wear for four days, which is its own hobby.",
+      "Alright. On the condition that we are allowed to leave if it's boring, both of us, no hard feelings.",
+    ],
+    declinesDate: [
+      "Not yet — I like this and I don't want to rush it into being something I have to manage.",
+      "I'm going to say no. I'd rather say no now than be weird about it later.",
+    ],
+    stoodUp: [
+      "I brought a book, which was lucky, because I read most of it. Don't do that again.",
+    ],
+  },
   dialogue,
+  dateDialogue,
 };

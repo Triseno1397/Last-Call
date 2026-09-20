@@ -11,6 +11,7 @@ import type {
   VenueId,
 } from '@/content/ids';
 import type { DialogueTree } from '@/types/dialogue';
+import type { TextTone } from '@/content/ids';
 
 /** Her baseline for the day. Shifts how hard the encounter is. */
 export type MoodBand = 'bad' | 'okay' | 'good';
@@ -30,6 +31,8 @@ export interface CharacterFact {
   id: string;
   /** One line, in the player's voice, for the phone/contacts screen. */
   text: string;
+  /** How the player brings it up in a text. Keep it casual and specific. */
+  callback?: string;
   /** Topics this fact unlocks in later conversations. */
   unlocks?: readonly TopicTag[];
 }
@@ -42,6 +45,17 @@ export interface CharacterPalette {
   eyes: string;
   accent: string;
   background: string;
+}
+
+/** Her side of a text conversation. Voice matters more here than anywhere. */
+export interface CharacterTexts {
+  replies: Record<TextTone, { good: readonly string[]; bad: readonly string[] }>;
+  /** Unprompted messages, sent when she is interested and you have gone quiet. */
+  opens: readonly string[];
+  acceptsDate: readonly string[];
+  declinesDate: readonly string[];
+  /** What she says when the player did not turn up. */
+  stoodUp: readonly string[];
 }
 
 export interface CharacterDef {
@@ -76,6 +90,9 @@ export interface CharacterDef {
   /** Characters who know her. Phase 3 spreads reputation along these. */
   knows: readonly CharacterId[];
   dialogue: DialogueTree;
+  /** The longer, multi-scene tree used on a date. */
+  dateDialogue?: DialogueTree;
+  texts: CharacterTexts;
 }
 
 export interface EncounterRecord {
@@ -103,6 +120,11 @@ export interface CharacterMemory {
   toldFacts: readonly string[];
   outcomes: readonly EncounterRecord[];
   hasNumber: boolean;
+  /** Texting cadence: she notices both silence and being spammed. */
+  lastContactAbsoluteDay: number | null;
+  dates: number;
+  /** Dates the player did not turn up to. She does not forget these. */
+  standUps: number;
   /** Outfits and CGs the player has unlocked, for the gallery. */
   seenOutfits: readonly string[];
   unlockedCgs: readonly string[];

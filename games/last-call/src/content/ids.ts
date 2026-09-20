@@ -172,3 +172,25 @@ export const ENCOUNTER_OUTCOMES = [
   'you_left',
 ] as const;
 export type EncounterOutcome = (typeof ENCOUNTER_OUTCOMES)[number];
+
+// --- Phase 4: phone, dates, wingman ---------------------------------------
+
+/** The tone of a text message. Timing matters as much as tone. */
+export const TEXT_TONES = ['playful', 'warm', 'direct', 'callback'] as const;
+export type TextTone = (typeof TEXT_TONES)[number];
+
+export const DATE_IDEA_IDS = [
+  'late_dinner',
+  'record_shop',
+  'gallery_night',
+  'cook_at_yours',
+  'climbing_session',
+  'salsa_night',
+  'film_walk',
+  'dive_bar_darts',
+] as const;
+export type DateIdeaId = (typeof DATE_IDEA_IDS)[number];
+
+/** The wingman is a contact, not a romance option. */
+export const WINGMAN_ID = 'dez' as const;
+export type WingmanId = typeof WINGMAN_ID;

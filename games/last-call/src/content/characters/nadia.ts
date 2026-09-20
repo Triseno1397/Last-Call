@@ -846,6 +846,384 @@ const dialogue: DialogueTree = {
   },
 };
 
+/** Her date tree: she picked the place, she has a plan, she is nervous about none of it. */
+const dateDialogue: DialogueTree = {
+  openings: {
+    stranger: 'arrive',
+    acquaintance: 'arrive',
+    interested: 'arrive',
+    dating: 'arrive_again',
+  },
+  nodes: {
+    arrive: {
+      id: 'arrive',
+      lines: [
+        {
+          text: "You're on time. Good. I had a whole speech about people who aren't and now I have to waste it.",
+          expression: 'amused',
+          cue: 'She is out of training kit and enjoying the effect it is having on you.',
+        },
+      ],
+      options: [
+        {
+          id: 'arrive_speech',
+          type: 'tease',
+          text: "Do the speech anyway. I'll pretend I was late so it lands.",
+          tags: ['banter'],
+          interest: 8,
+          comfort: 5,
+          next: 'scene_one',
+        },
+        {
+          id: 'arrive_direct',
+          type: 'bold',
+          text: "I was early, actually. Walked round the block twice so I wouldn't look keen.",
+          tags: ['direct', 'vulnerable'],
+          interest: 9,
+          comfort: 6,
+          next: 'scene_one',
+        },
+        {
+          id: 'arrive_compliment',
+          type: 'compliment',
+          text: "You look unbelievable. I'm just going to say that and move on.",
+          tags: ['flattery'],
+          interest: 0,
+          comfort: 2,
+          next: 'scene_one',
+        },
+      ],
+    },
+
+    arrive_again: {
+      id: 'arrive_again',
+      lines: [
+        {
+          text: "Round two. I've told three people about the first one, which is three more than I usually would.",
+          expression: 'blushing',
+          cue: 'She hugs you hello, quickly, like it is a rep she wants over with.',
+        },
+      ],
+      options: [
+        {
+          id: 'again_tease',
+          type: 'tease',
+          text: "Three people. Names. I want to know who to impress.",
+          tags: ['banter'],
+          interest: 8,
+          comfort: 6,
+          next: 'scene_one',
+        },
+        {
+          id: 'again_warm',
+          type: 'sincere',
+          text: "I've told nobody, because I wanted to keep it. That's the same thing in a different direction.",
+          tags: ['direct', 'vulnerable'],
+          interest: 9,
+          comfort: 7,
+          next: 'scene_one',
+        },
+      ],
+    },
+
+    scene_one: {
+      id: 'scene_one',
+      lines: [
+        {
+          mood: 'bad',
+          text: "Heads up: body is wrecked, mood is worse, and I nearly cancelled. I didn't, so make it worth it.",
+          expression: 'annoyed',
+          cue: 'She rolls her shoulder twice. She is in real pain and completely ignoring it.',
+        },
+        {
+          text: "Right. Rules: no talking about work, no talking about my knee, and one of us has to win the evening.",
+          expression: 'interested',
+          cue: 'She is already leaning forward on her elbows, grinning.',
+        },
+      ],
+      options: [
+        {
+          id: 'one_compete',
+          type: 'bold',
+          text: "I'll win it. Terms: whoever asks the better question takes it.",
+          tags: ['banter', 'direct'],
+          interest: 8,
+          comfort: 4,
+          next: 'the_game',
+        },
+        {
+          id: 'one_care',
+          type: 'sincere',
+          text: "Nearly cancelled and came anyway. That's the most flattering thing anyone's done for me in a year.",
+          tags: ['direct', 'vulnerable'],
+          interest: 9,
+          comfort: 7,
+          next: 'the_game',
+        },
+        {
+          id: 'one_knee',
+          type: 'question',
+          text: "What's actually wrong with the knee, though?",
+          tags: ['pushy', 'small_talk'],
+          interest: -6,
+          comfort: -4,
+          next: 'rule_broken',
+        },
+      ],
+    },
+
+    rule_broken: {
+      id: 'rule_broken',
+      lines: [
+        {
+          text: "One rule. There was one rule, and it was about my knee, and you went straight at it.",
+          expression: 'annoyed',
+          cue: 'She laughs, but it is the short one, the one with an edge on it.',
+        },
+      ],
+      topics: ['pushy'],
+      options: [
+        {
+          id: 'broken_recover',
+          type: 'joke',
+          text: "In my defence I have no other material. Give me a new rule and I'll break that one instead.",
+          tags: ['banter', 'direct'],
+          interest: 7,
+          comfort: 6,
+          next: 'the_game',
+        },
+        {
+          id: 'broken_worse',
+          type: 'story',
+          text: "I'm just saying, at your age you have to manage these things.",
+          tags: ['negging'],
+          interest: -14,
+          comfort: -12,
+          next: 'date_over',
+        },
+      ],
+    },
+
+    the_game: {
+      id: 'the_game',
+      lines: [
+        {
+          text: "Fine. Better question takes the evening. Mine first: what are you actually afraid of? Not spiders. The real one.",
+          expression: 'interested',
+          cue: 'She has gone straight past small talk into the deep end, and she is watching to see if you follow.',
+        },
+      ],
+      topics: ['direct', 'vulnerable'],
+      options: [
+        {
+          id: 'game_true',
+          type: 'sincere',
+          text: "Being a person things happen to. Watching the good years go past while I get ready.",
+          tags: ['vulnerable', 'direct'],
+          interest: 11,
+          comfort: 8,
+          tell: ['player_afraid'],
+          next: 'her_turn',
+        },
+        {
+          id: 'game_deflect',
+          type: 'joke',
+          text: "Spiders. It's spiders. I've thought about it a lot and it's spiders.",
+          tags: ['banter'],
+          interest: 5,
+          comfort: 4,
+          next: 'her_turn',
+        },
+        {
+          id: 'game_flip',
+          type: 'tease',
+          text: "Nice try. You asked it, so you answer it first — that's the actual rule.",
+          tags: ['banter', 'direct'],
+          interest: 8,
+          comfort: 5,
+          next: 'her_turn',
+        },
+      ],
+    },
+
+    her_turn: {
+      id: 'her_turn',
+      lines: [
+        {
+          minInterest: 68,
+          text: "Mine's easy. Going back to being the person I was at the end of the marriage. Small. Quiet. Agreeing with things. I lift heavy so that woman stays gone.",
+          expression: 'uncomfortable',
+          cue: 'She says it flatly, the way you say a thing you have practised saying flatly.',
+        },
+        {
+          text: "Mine is boring: being average. That's it. That's the whole fear, and it runs the entire operation.",
+          expression: 'neutral',
+          cue: 'She turns her glass in a circle, twice.',
+        },
+      ],
+      topics: ['vulnerable'],
+      options: [
+        {
+          id: 'turn_hold',
+          type: 'sincere',
+          text: "She's gone. I've never met her and I never will. That's you, doing that.",
+          tags: ['direct', 'vulnerable'],
+          interest: 11,
+          comfort: 9,
+          learn: ['nadia_divorce'],
+          next: 'scene_two',
+        },
+        {
+          id: 'turn_light',
+          type: 'tease',
+          text: "You are a lot of things, Nadia. Average is not on the list and it's frankly not close.",
+          tags: ['banter', 'direct'],
+          interest: 8,
+          comfort: 6,
+          next: 'scene_two',
+        },
+      ],
+    },
+
+    scene_two: {
+      id: 'scene_two',
+      lines: [
+        {
+          minInterest: 74,
+          text: "Right, I'm calling it — you won the evening. Do not get used to it, it will not happen again.",
+          expression: 'laughing',
+          cue: 'Her hand has been on your forearm for about four minutes and neither of you has mentioned it.',
+        },
+        {
+          text: "This was better than I expected, and my expectations were already fairly aggressive.",
+          expression: 'interested',
+          cue: 'She has stopped checking the time, which for her is enormous.',
+        },
+      ],
+      options: [
+        {
+          id: 'two_claim',
+          type: 'bold',
+          text: "Then I'm claiming my prize: next Wednesday, your class, I'll be the one counting out loud.",
+          tags: ['direct', 'music'],
+          interest: 9,
+          comfort: 5,
+          next: 'walk_home',
+        },
+        {
+          id: 'two_honest',
+          type: 'sincere',
+          text: "I'd rather lose to you weekly than win against anyone else.",
+          tags: ['direct', 'vulnerable'],
+          interest: 10,
+          comfort: 7,
+          next: 'walk_home',
+        },
+      ],
+    },
+
+    walk_home: {
+      id: 'walk_home',
+      lines: [
+        {
+          minInterest: 76,
+          text: "Right. I'm going to do the thing now, because if I wait I'll turn it into a bet.",
+          expression: 'blushing',
+          cue: 'She steps in first, because of course she does.',
+        },
+        {
+          text: "This is me. Text me tomorrow — and do not play it cool, I have no patience for cool.",
+          expression: 'interested',
+          cue: 'She is standing very close and entirely unhurried about it.',
+        },
+      ],
+      options: [
+        {
+          id: 'home_kiss',
+          type: 'bold',
+          text: "Do the thing.",
+          tags: ['direct', 'innuendo'],
+          requires: [
+            { kind: 'interest', min: 66 },
+            { kind: 'comfort', min: 58 },
+          ],
+          interest: 8,
+          comfort: 2,
+          next: 'end_great',
+        },
+        {
+          id: 'home_soon',
+          type: 'sincere',
+          text: "No cool. Tomorrow, first thing, something undignified.",
+          tags: ['direct'],
+          interest: 6,
+          comfort: 6,
+          next: 'end_good',
+        },
+        {
+          id: 'home_push',
+          type: 'bold',
+          text: "Or I don't go home at all.",
+          tags: ['pushy'],
+          interest: -5,
+          comfort: -9,
+          next: 'end_cold',
+        },
+      ],
+    },
+
+    date_over: {
+      id: 'date_over',
+      lines: [
+        {
+          text: "At my age. Right — we're done. Get the bill or don't, I'm going.",
+          expression: 'annoyed',
+          cue: 'Coat, door, gone. She does not do second chances on that one.',
+        },
+      ],
+      outcome: 'she_left',
+      topics: ['negging'],
+    },
+
+    end_great: {
+      id: 'end_great',
+      lines: [
+        {
+          text: "Finally. Honestly.",
+          expression: 'blushing',
+          cue: 'She kisses you like she has been planning it since the second drink, and the evening stops being anybody else’s business.',
+        },
+      ],
+      outcome: 'date_planned',
+    },
+
+    end_good: {
+      id: 'end_good',
+      lines: [
+        {
+          text: "Undignified. Good. That's the correct answer and you knew it.",
+          expression: 'amused',
+          cue: 'She squeezes your hand once, hard, and goes in grinning.',
+        },
+      ],
+      outcome: 'date_planned',
+    },
+
+    end_cold: {
+      id: 'end_cold',
+      lines: [
+        {
+          text: "Nope. Not because I don't want to — because you asked like it was the plan all along, and I don't like being a plan.",
+          expression: 'annoyed',
+          cue: 'She is still smiling. She is also already at her door.',
+        },
+      ],
+      outcome: 'rejected',
+      topics: ['pushy'],
+    },
+  },
+};
+
 export const NADIA: CharacterDef = {
   id: 'nadia',
   name: 'Nadia',
@@ -878,11 +1256,11 @@ export const NADIA: CharacterDef = {
   baseComfort: 50,
   patience: 7,
   facts: [
-    { id: 'nadia_competes', text: 'She has a meet in eleven weeks and a total she announced in front of witnesses.', unlocks: ['fitness'] },
-    { id: 'nadia_physio', text: 'She is a physiotherapist. Do not explain legs to her.' },
-    { id: 'nadia_salsa', text: 'Salsa on Wednesdays. She is the worst one in the class and finds that relaxing.', unlocks: ['music'] },
-    { id: 'nadia_divorce', text: 'Divorced at twenty-nine, moved here, has not been bored since.' },
-    { id: 'nadia_knows_sable', text: 'She has been drinking at Last Call for six years. Sable is hers, and she said so.', unlocks: ['nightlife'] },
+    { id: 'nadia_competes', text: 'She has a meet in eleven weeks and a total she announced in front of witnesses.', unlocks: ['fitness'] , callback: 'How many weeks left on the number you announced in front of witnesses?' },
+    { id: 'nadia_physio', text: 'She is a physiotherapist. Do not explain legs to her.' , callback: 'I have a knee theory and I am not going to tell you it. Growth.' },
+    { id: 'nadia_salsa', text: 'Salsa on Wednesdays. She is the worst one in the class and finds that relaxing.', unlocks: ['music'] , callback: 'Still the worst one in the class, or has somebody worse joined?' },
+    { id: 'nadia_divorce', text: 'Divorced at twenty-nine, moved here, has not been bored since.' , callback: 'Been thinking about what you said. Not bored since. That stuck with me.' },
+    { id: 'nadia_knows_sable', text: 'She has been drinking at Last Call for six years. Sable is hers, and she said so.', unlocks: ['nightlife'] , callback: 'Sable says hello. She also said something about you that I am not repeating.' },
   ],
   outfits: [
     {
@@ -922,5 +1300,54 @@ export const NADIA: CharacterDef = {
     background: '#16242f',
   },
   knows: ['sable', 'wren'],
+  texts: {
+    replies: {
+      playful: {
+        good: [
+          "Ha. Fine. That one landed, don't get used to it.",
+          "You're quicker than you look. I'll allow it.",
+        ],
+        bad: ["Mid. Try again when you've warmed up."],
+      },
+      warm: {
+        good: [
+          "That's soft. I liked it. Tell nobody.",
+          "See, when you say things like that I have to go and lift something to recover.",
+        ],
+        bad: ["Appreciated. Mid-session though, I'll text you when I can hold the phone."],
+      },
+      direct: {
+        good: [
+          "Finally. Yes. That took you long enough.",
+          "Good. I don't do hinting, it's exhausting for everyone.",
+        ],
+        bad: ["Bold. Slightly early, but bold. Keep it."],
+      },
+      callback: {
+        good: [
+          "You remembered the number. Nobody remembers the number.",
+          "Correct, and now I have to be nice to you for at least a day.",
+        ],
+        bad: ["Wrong lift. Close, though."],
+      },
+    },
+    opens: [
+      "PB. Two kilos over what I said in front of witnesses. I need someone to be unbearable at and you're elected.",
+      "Knee is fine, before you ask. Nobody asked. I'm telling you anyway.",
+      "Wednesday class was a disaster and I loved it. What are you doing.",
+    ],
+    acceptsDate: [
+      "Yes. And I'm picking, because you'll pick something safe.",
+      "Obviously yes. I've been waiting for you to catch up.",
+    ],
+    declinesDate: [
+      "No. Not a forever no — a 'you asked before you meant it' no.",
+      "Not yet. Ask me when you're not asking to see what happens.",
+    ],
+    stoodUp: [
+      "I waited. I don't wait. That's the whole message.",
+    ],
+  },
   dialogue,
+  dateDialogue,
 };

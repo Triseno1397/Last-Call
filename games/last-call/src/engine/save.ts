@@ -36,6 +36,25 @@ const MIGRATIONS: Readonly<Record<number, Migration>> = {
       player: { ...player, gender: player['gender'] ?? 'man' },
     };
   },
+  // 2 -> 3: the phone, scheduled dates and texting cadence.
+  2: (state) => {
+    const characters = (state['characters'] ?? {}) as Record<string, Record<string, unknown>>;
+    const upgraded: Record<string, unknown> = {};
+    for (const [id, memory] of Object.entries(characters)) {
+      upgraded[id] = {
+        ...memory,
+        lastContactAbsoluteDay: memory['lastContactAbsoluteDay'] ?? null,
+        dates: memory['dates'] ?? 0,
+        standUps: memory['standUps'] ?? 0,
+      };
+    }
+    return {
+      ...state,
+      characters: upgraded,
+      phone: state['phone'] ?? { threads: {}, tipsGiven: [], lastTipDay: null },
+      dates: state['dates'] ?? [],
+    };
+  },
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

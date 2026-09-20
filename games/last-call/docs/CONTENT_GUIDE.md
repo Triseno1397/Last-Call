@@ -243,6 +243,39 @@ extra, and while comfort is under 30 any interest gained is halved. Comfort on
 the floor ends the conversation whatever the interest was. Her `dealbreaker` tag
 ends it permanently.
 
+### Texting
+
+Every character needs a `texts` block: replies for each of the four tones
+(`playful`, `warm`, `direct`, `callback`), split into `good` and `bad`, plus
+`opens` (what she sends unprompted when she is interested and you have gone
+quiet), `acceptsDate`, `declinesDate` and `stoodUp`.
+
+A text is scored like a reply — tone maps to a response type and runs through
+her preferences — plus **cadence**: double-texting costs, a day or three is the
+sweet spot, and a week of silence is a cold open. The `callback` tone is locked
+until the player has learned something about her, and it uses the fact's
+`callback` line, which should be written the way a person actually texts
+("How is urban loneliness coming along? The thesis, not the condition."), not
+the notebook line the contacts screen shows.
+
+### Date ideas and date trees
+
+Ideas live in `src/content/dateIdeas.ts`. An idea is offered when the player can
+pull it off (`requiresHobby` / `requiresStat` / money) and earns a bonus when its
+`appealsTo` overlaps her `interests` — that bonus is the reward for having paid
+attention in conversation.
+
+A date is the same engine with a longer leash: give the character a
+`dateDialogue` tree. Convention for its nodes: `arrive` (and `arrive_again` for
+someone you are already dating), one or two scenes, a moment where she says the
+real thing, then `walk_home` with three endings — a great one
+(`outcome: 'date_planned'`), a decent one, and a cold one (`outcome: 'rejected'`).
+Romance fades to black at the door: write the cue line, not the scene.
+
+The wingman lives in `src/content/wingman.ts`. His tips are data; one a day, never
+repeated, and some of them hand the player a fact they would otherwise have to
+discover.
+
 ### Which provider is running
 
 The game talks to a `DialogueProvider`, never to a tree.

@@ -11,9 +11,11 @@ import { Button } from '@/ui/components/Button';
 import { Chip } from '@/ui/components/Chip';
 import { CharacterPortrait } from '@/ui/components/CharacterPortrait';
 import { DartsGame } from '@/ui/components/DartsGame';
+import { WINGMAN } from '@/content/wingman';
+import { wingmanIsAround } from '@/engine/wingman';
 
 export function VenueScreen({ game, visit }: { game: GameState; visit: VenueVisit }) {
-  const { talkTo, leaveVenue, recordDarts, notice, dismissNotice } = useGameStore();
+  const { talkTo, leaveVenue, recordDarts, useWingman, notice, dismissNotice } = useGameStore();
   const venue = VENUES[visit.venueId];
   const crowd = crowdAt(venue, game.clock, game.characters);
   const awareness = effectiveAwareness(game.player);
@@ -90,6 +92,22 @@ export function VenueScreen({ game, visit }: { game: GameState; visit: VenueVisi
           );
         })}
       </section>
+
+      {wingmanIsAround(game, visit.venueId) && !visit.wingmanUsed && (
+        <section className="panel p-4">
+          <h3 className="font-display text-base font-semibold">{WINGMAN.name} is here</h3>
+          <p className="mt-1 text-sm text-ink-500">
+            He is two rounds in and looking for something to do with himself.
+          </p>
+          <Button variant="ghost" className="mt-3 w-full" onClick={useWingman}>
+            Get him to do the introduction
+          </Button>
+        </section>
+      )}
+
+      {visit.wingmanLine && (
+        <p className="panel-flat px-4 py-3 text-sm italic text-gold-400">{visit.wingmanLine}</p>
+      )}
 
       {venue.miniGame === 'darts' && !visit.dartsPlayed && (
         <DartsGame

@@ -1023,6 +1023,390 @@ const dialogue: DialogueTree = {
   },
 };
 
+/** Her date tree: three scenes, longer leash, higher stakes. */
+const dateDialogue: DialogueTree = {
+  openings: {
+    stranger: 'arrive',
+    acquaintance: 'arrive',
+    interested: 'arrive',
+    dating: 'arrive_again',
+  },
+  nodes: {
+    arrive: {
+      id: 'arrive',
+      lines: [
+        {
+          text: "So this is me without the bar in the way. Weird, isn't it. No counter, nothing to do with my hands.",
+          expression: 'interested',
+          cue: 'No apron. Hair down. She keeps almost reaching for a glass that is not there.',
+        },
+      ],
+      options: [
+        {
+          id: 'arrive_honest',
+          type: 'sincere',
+          text: "It is weird. Good weird. I've only ever seen you working.",
+          tags: ['direct'],
+          interest: 6,
+          comfort: 5,
+          next: 'scene_one',
+        },
+        {
+          id: 'arrive_tease',
+          type: 'tease',
+          text: "Here. Hold my glass. Now you've got something to do with your hands and I've got nothing to drink.",
+          tags: ['banter'],
+          interest: 7,
+          comfort: 5,
+          next: 'scene_one',
+        },
+        {
+          id: 'arrive_flat',
+          type: 'compliment',
+          text: "You look incredible, by the way. Genuinely. Wow.",
+          tags: ['flattery'],
+          interest: -2,
+          comfort: 1,
+          next: 'scene_one',
+        },
+      ],
+    },
+
+    arrive_again: {
+      id: 'arrive_again',
+      lines: [
+        {
+          text: "Second one of these. I'm choosing not to be weird about what that means.",
+          expression: 'blushing',
+          cue: 'She got here first. She never gets anywhere first.',
+        },
+      ],
+      options: [
+        {
+          id: 'again_warm',
+          type: 'sincere',
+          text: "Be weird about it. I'm being weird about it.",
+          tags: ['direct', 'vulnerable'],
+          interest: 8,
+          comfort: 6,
+          next: 'scene_one',
+        },
+        {
+          id: 'again_joke',
+          type: 'joke',
+          text: "It means we've established a pattern. Two more and it's a tradition with a newsletter.",
+          tags: ['banter'],
+          interest: 6,
+          comfort: 5,
+          next: 'scene_one',
+        },
+      ],
+    },
+
+    scene_one: {
+      id: 'scene_one',
+      lines: [
+        {
+          mood: 'bad',
+          text: "Right. Full disclosure, today has been a day, so if I go quiet it is not you.",
+          expression: 'uncomfortable',
+          cue: 'She is here anyway. That is not nothing.',
+        },
+        {
+          text: "Alright. We've got a whole evening and no last orders. I have no idea how to do this bit.",
+          expression: 'interested',
+          cue: 'She laughs at herself, which she does not do at work.',
+        },
+      ],
+      options: [
+        {
+          id: 'one_ask',
+          type: 'question',
+          text: "Then let's do the bit nobody does. What were you like at nineteen?",
+          tags: ['curiosity'],
+          interest: 6,
+          comfort: 4,
+          next: 'nineteen',
+        },
+        {
+          id: 'one_food',
+          type: 'question',
+          text: "You cook at 3am. Tonight somebody else is cooking. Is that better or worse?",
+          tags: ['food', 'curiosity'],
+          interest: 6,
+          comfort: 5,
+          next: 'food_talk',
+        },
+        {
+          id: 'one_bold',
+          type: 'bold',
+          text: "Nobody knows how to do this bit. That's the bit. Ask me anything and I'll answer it properly.",
+          tags: ['direct'],
+          interest: 8,
+          comfort: 3,
+          next: 'her_question',
+        },
+      ],
+    },
+
+    nineteen: {
+      id: 'nineteen',
+      lines: [
+        {
+          text: "Unbearable. Certain about everything, wrong about most of it, and I had a fringe that deserved its own trial. You?",
+          expression: 'laughing',
+          cue: 'She has turned in her chair. Whole body, towards you.',
+        },
+      ],
+      topics: ['vulnerable', 'banter'],
+      options: [
+        {
+          id: 'nineteen_honest',
+          type: 'story',
+          text: "Quiet. Waiting to be picked for something. Took me years to work out nobody picks you.",
+          tags: ['vulnerable', 'direct'],
+          interest: 8,
+          comfort: 6,
+          tell: ['player_late_bloomer'],
+          next: 'scene_two',
+        },
+        {
+          id: 'nineteen_joke',
+          type: 'joke',
+          text: "I had a phase where I only wore one colour. I cannot tell you which colour. It's still a wound.",
+          tags: ['banter'],
+          interest: 6,
+          comfort: 5,
+          next: 'scene_two',
+        },
+      ],
+    },
+
+    food_talk: {
+      id: 'food_talk',
+      lines: [
+        {
+          text: "Worse. Obviously worse. There's no pan and I can't hide behind doing something. This is just talking, at you, with my face.",
+          expression: 'amused',
+          cue: 'She says it like a complaint and she is completely delighted.',
+        },
+      ],
+      topics: ['food', 'banter'],
+      options: [
+        {
+          id: 'food_reassure',
+          type: 'sincere',
+          text: "Your face is doing fine. Keep going.",
+          tags: ['direct'],
+          interest: 7,
+          comfort: 6,
+          next: 'scene_two',
+        },
+        {
+          id: 'food_offer',
+          type: 'bold',
+          text: "Then next time, your kitchen, three in the morning, and I'll do the washing up.",
+          tags: ['direct', 'food'],
+          requires: [{ kind: 'comfort', min: 55 }],
+          interest: 9,
+          comfort: 3,
+          next: 'scene_two',
+        },
+      ],
+    },
+
+    her_question: {
+      id: 'her_question',
+      lines: [
+        {
+          text: "Fine. Why me? And don't say the bourbon — everyone says the bourbon.",
+          expression: 'interested',
+          cue: 'This is a real question. She has put her glass down for it.',
+        },
+      ],
+      topics: ['direct', 'vulnerable'],
+      options: [
+        {
+          id: 'why_true',
+          type: 'sincere',
+          text: "Because you say the true thing before the polite thing, and I've spent my whole life doing it the other way round.",
+          tags: ['direct', 'vulnerable'],
+          interest: 11,
+          comfort: 7,
+          next: 'scene_two',
+        },
+        {
+          id: 'why_funny',
+          type: 'joke',
+          text: "Because you're the only person who's ever insulted me into coming back four times.",
+          tags: ['banter'],
+          interest: 7,
+          comfort: 5,
+          next: 'scene_two',
+        },
+        {
+          id: 'why_smooth',
+          type: 'compliment',
+          text: "Look at you. That's the whole answer.",
+          tags: ['flattery'],
+          interest: -5,
+          comfort: -4,
+          next: 'scene_two',
+        },
+      ],
+    },
+
+    scene_two: {
+      id: 'scene_two',
+      lines: [
+        {
+          minInterest: 70,
+          text: "Okay. Here's the one I don't do. My dad's bar. That's why I'm there — he got sick, I stayed, and I stopped telling people because they do the face.",
+          expression: 'uncomfortable',
+          cue: 'She is watching your face very carefully. This is the whole date, right here.',
+        },
+        {
+          text: "It's late and I've talked about myself for an hour, which I never do. Say something, quickly, before I notice.",
+          expression: 'blushing',
+          cue: 'Her hand is flat on the table, a few inches from yours, and she has not moved it.',
+        },
+      ],
+      topics: ['vulnerable', 'family'],
+      options: [
+        {
+          id: 'two_no_face',
+          type: 'sincere',
+          text: "No face. Just — thank you for telling me. That's all.",
+          tags: ['direct', 'vulnerable'],
+          interest: 10,
+          comfort: 9,
+          learn: ['sable_dad'],
+          next: 'walk_home',
+        },
+        {
+          id: 'two_tease',
+          type: 'tease',
+          text: "Noticed. Logged. I'll bring it up at the worst possible moment in about a month.",
+          tags: ['banter'],
+          interest: 7,
+          comfort: 6,
+          next: 'walk_home',
+        },
+        {
+          id: 'two_advice',
+          type: 'story',
+          text: "You know you could still go back to law, right? You'd be great at it.",
+          tags: ['pushy'],
+          interest: -9,
+          comfort: -8,
+          next: 'date_sours',
+        },
+      ],
+    },
+
+    walk_home: {
+      id: 'walk_home',
+      lines: [
+        {
+          minInterest: 75,
+          text: "Walk me back. And then — I'm going to stop talking now, which for me is basically a declaration.",
+          expression: 'blushing',
+          cue: 'She is standing closer than the pavement requires.',
+        },
+        {
+          text: "Right. That's me. This was — yeah. This was good.",
+          expression: 'interested',
+          cue: 'Neither of you is walking away yet. Nobody is checking a phone.',
+        },
+      ],
+      options: [
+        {
+          id: 'home_kiss',
+          type: 'bold',
+          text: "Stop talking, then.",
+          tags: ['direct', 'innuendo'],
+          requires: [
+            { kind: 'interest', min: 68 },
+            { kind: 'comfort', min: 62 },
+          ],
+          interest: 8,
+          comfort: 2,
+          next: 'end_great',
+        },
+        {
+          id: 'home_again',
+          type: 'sincere',
+          text: "Let's do this again. Soon, and not at your bar.",
+          tags: ['direct'],
+          interest: 6,
+          comfort: 5,
+          next: 'end_good',
+        },
+        {
+          id: 'home_push',
+          type: 'bold',
+          text: "Invite me up.",
+          tags: ['pushy'],
+          interest: -6,
+          comfort: -10,
+          next: 'end_cold',
+        },
+      ],
+    },
+
+    date_sours: {
+      id: 'date_sours',
+      lines: [
+        {
+          text: "There it is. The face, and then the plan. I'm going to get the bill and we're going to talk about literally anything else.",
+          expression: 'annoyed',
+          cue: 'The door has closed. It closed while you were still talking.',
+        },
+      ],
+      outcome: 'friendly',
+      topics: ['pushy'],
+    },
+
+    end_great: {
+      id: 'end_great',
+      lines: [
+        {
+          text: "Finally.",
+          expression: 'blushing',
+          cue: "She kisses you in a doorway on a wet street, and the rest of the night belongs to the two of you. The city keeps going without you.",
+        },
+      ],
+      outcome: 'date_planned',
+      topics: ['direct'],
+    },
+
+    end_good: {
+      id: 'end_good',
+      lines: [
+        {
+          text: "Not at my bar. Deal. Text me tomorrow, not tonight — tonight I'm going to sit with this for a bit.",
+          expression: 'interested',
+          cue: 'She squeezes your arm once and goes inside, and the light in the hallway stays on a long time.',
+        },
+      ],
+      outcome: 'date_planned',
+    },
+
+    end_cold: {
+      id: 'end_cold',
+      lines: [
+        {
+          text: "And there's the ask. No. Goodnight — I mean that kindly, and I do mean goodnight.",
+          expression: 'uncomfortable',
+          cue: 'Door, lock, hallway light off. Efficiently.',
+        },
+      ],
+      outcome: 'rejected',
+      topics: ['pushy'],
+    },
+  },
+};
+
 export const SABLE: CharacterDef = {
   id: 'sable',
   name: 'Sable',
@@ -1055,14 +1439,14 @@ export const SABLE: CharacterDef = {
   baseComfort: 55,
   patience: 9,
   facts: [
-    { id: 'sable_bitters', text: 'The dare ingredient was a bitters she makes herself. She was pleased you asked.' },
-    { id: 'sable_records', text: 'She controls the jukebox. There is a locked playlist and she is not sorry.', unlocks: ['music'] },
-    { id: 'sable_cooks', text: 'She cooks at 3am when she gets home. One pan, whatever is in the fridge.', unlocks: ['food'] },
-    { id: 'sable_tattoo', text: "The line on her forearm is from a song. One guess per visit." },
-    { id: 'sable_law_school', text: 'She was two years into law school before the bar needed her.' },
-    { id: 'sable_dad', text: 'Her dad got sick; that is why she stayed. She does not want the sympathetic face.' },
-    { id: 'sable_loves_bar', text: 'She loves this place, and she would deny it under oath.' },
-    { id: 'sable_reads_people', text: 'She reads people for a living and is very good at it. Assume she has clocked you.' },
+    { id: 'sable_bitters', text: 'The dare ingredient was a bitters she makes herself. She was pleased you asked.' , callback: 'I want the bitters recipe. I will trade you something for it.' },
+    { id: 'sable_records', text: 'She controls the jukebox. There is a locked playlist and she is not sorry.', unlocks: ['music'] , callback: 'I have been thinking about your locked playlist with real envy.' },
+    { id: 'sable_cooks', text: 'She cooks at 3am when she gets home. One pan, whatever is in the fridge.', unlocks: ['food'] , callback: 'What did the 3am pan produce last night?' },
+    { id: 'sable_tattoo', text: "The line on her forearm is from a song. One guess per visit." , callback: 'I am saving my guess. Building to it. Do not rush me.' },
+    { id: 'sable_law_school', text: 'She was two years into law school before the bar needed her.' , callback: 'Two years of law school and you still let people order a vodka soda.' },
+    { id: 'sable_dad', text: 'Her dad got sick; that is why she stayed. She does not want the sympathetic face.' , callback: 'Been thinking about what you told me about your dad. No face, just — thinking about it.' },
+    { id: 'sable_loves_bar', text: 'She loves this place, and she would deny it under oath.' , callback: 'You love that place and you would deny it under oath.' },
+    { id: 'sable_reads_people', text: 'She reads people for a living and is very good at it. Assume she has clocked you.' , callback: 'Still annoyed that you read me in about four seconds.' },
   ],
   outfits: [
     {
@@ -1102,5 +1486,57 @@ export const SABLE: CharacterDef = {
     background: '#221230',
   },
   knows: ['nadia'],
+  texts: {
+    replies: {
+      playful: {
+        good: [
+          "That is the correct amount of stupid for a Tuesday. Go on then.",
+          "You're funnier by text than in person, which is either good news or a warning.",
+        ],
+        bad: [
+          "Ha.",
+          "Mm. Busy night, can't do the bit right now.",
+        ],
+      },
+      warm: {
+        good: [
+          "That's a nice thing to say and I'm choosing to believe you meant it.",
+          "Yeah. It was a good night. Don't make it weird by saying so again.",
+        ],
+        bad: ["Thanks. Long shift, sorry — will be better company later in the week."],
+      },
+      direct: {
+        good: [
+          "Straight in. Good. Yes to the first thing, no to the second, ask me about the third in person.",
+          "I like that you just said it. Most people workshop it for four days.",
+        ],
+        bad: ["That's a lot of direct for nine in the morning."],
+      },
+      callback: {
+        good: [
+          "You remembered. Right, that is genuinely annoying of you.",
+          "Ten points. You were listening. Dangerous habit, keep it up.",
+        ],
+        bad: ["Close. Wrong bit of the story, but close."],
+      },
+    },
+    opens: [
+      "Someone just ordered a pint of the house red. I had nobody to tell. This is your job now.",
+      "Gary has apologised to the wall. I'm shaking. Thought you'd want to know first.",
+      "Slow night. Say something, I'm reorganising the bottles again and it's getting out of hand.",
+    ],
+    acceptsDate: [
+      "Yes. But if you pick somewhere with a set menu I will walk into the sea.",
+      "Go on then. I'm off at nine, don't be early, I hate being watched while I close up.",
+    ],
+    declinesDate: [
+      "Not yet. Ask me again when you've been in on a night I'm not working.",
+      "I'm going to say no, and I'm going to be nice about it, which is your one warning.",
+    ],
+    stoodUp: [
+      "I stood outside that place for twenty minutes doing the thing where you check your phone like it's a hobby. Don't.",
+    ],
+  },
   dialogue,
+  dateDialogue,
 };

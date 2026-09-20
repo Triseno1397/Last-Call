@@ -82,6 +82,8 @@ export interface EncounterContext {
   openingBonus: number;
   /** Player's social awareness level, 0-4. */
   awareness: number;
+  /** A night out at a venue, or a planned date with its longer tree. */
+  mode: 'encounter' | 'date';
   /** Where the meters start, after memory, mood, reputation and gossip. */
   startingInterest: number;
   startingComfort: number;
@@ -159,6 +161,7 @@ export interface EncounterBeat {
 export interface EncounterState {
   characterId: string;
   venueId: string;
+  mode: 'encounter' | 'date';
   providerId: string;
   cursor: ProviderCursor;
   interest: number;

@@ -44,6 +44,7 @@ export function buildContext(
   characterId: CharacterId,
   venueId: VenueId,
   openingBonus = 0,
+  mode: 'encounter' | 'date' = 'encounter',
 ): EncounterContext {
   const character = getCharacter(characterId);
   const absDay = absoluteDay(state.clock);
@@ -70,6 +71,7 @@ export function buildContext(
     moodValue,
     openingBonus,
     awareness: effectiveAwareness(state.player),
+    mode,
     startingInterest,
     startingComfort,
     openingNotes: gossip.notes,
@@ -86,6 +88,7 @@ function stateFromTurn(
   return {
     characterId: context.character.id,
     venueId: context.venue.id,
+    mode: context.mode,
     providerId: dialogueProvider.id,
     cursor: turn.cursor,
     interest: clampMeter(interest),
@@ -116,8 +119,9 @@ export async function beginEncounter(
   venueId: VenueId,
   openingBonus = 0,
   provider: DialogueProvider = dialogueProvider,
+  mode: 'encounter' | 'date' = 'encounter',
 ): Promise<EncounterState> {
-  const context = buildContext(state, characterId, venueId, openingBonus);
+  const context = buildContext(state, characterId, venueId, openingBonus, mode);
   const turn = await provider.open(context);
   const opened = stateFromTurn(context, turn, null, context.startingInterest, context.startingComfort);
   return context.openingNotes.length > 0
@@ -147,6 +151,7 @@ export async function chooseOption(
     encounter.characterId as CharacterId,
     encounter.venueId as VenueId,
     encounter.openingBonus,
+    encounter.mode,
   );
   const turn = await provider.respond(
     context,
@@ -234,6 +239,9 @@ export function concludeEncounter(
     toldFacts: [...new Set([...previous.toldFacts, ...encounter.told])],
     outcomes: [...previous.outcomes, record].slice(-12),
     hasNumber: previous.hasNumber || outcome === 'number' || outcome === 'date_planned',
+    lastContactAbsoluteDay: absDay,
+    dates: previous.dates,
+    standUps: previous.standUps,
     seenOutfits: [...new Set([...previous.seenOutfits, ...(outfit ? [outfit.id] : [])])],
     unlockedCgs: previous.unlockedCgs,
     dealbroken: previous.dealbroken || encounter.dealbroken,

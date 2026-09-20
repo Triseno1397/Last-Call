@@ -1,5 +1,6 @@
 import type { ActivityId, CharacterId, StatId, VenueId } from '@/content/ids';
 import type { CharacterMemory } from '@/types/character';
+import type { PhoneState, ScheduledDate } from '@/types/phone';
 import type { ContentRating, GameClock } from '@/types/core';
 import type { PlayerState } from '@/types/player';
 
@@ -13,7 +14,10 @@ export type ScreenId =
   | 'venue'
   | 'encounter'
   | 'encounterEnd'
-  | 'gallery';
+  | 'gallery'
+  | 'phone'
+  | 'thread'
+  | 'date';
 
 export type LogTone = 'neutral' | 'good' | 'bad' | 'flavour' | 'milestone';
 
@@ -51,6 +55,8 @@ export interface GameState {
   player: PlayerState;
   /** What each character remembers about the player. */
   characters: Readonly<Partial<Record<CharacterId, CharacterMemory>>>;
+  phone: PhoneState;
+  dates: readonly ScheduledDate[];
   log: readonly LogEntry[];
   week: WeekSummary;
   /** The week that just ended, shown on the recap screen. */

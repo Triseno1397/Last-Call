@@ -133,6 +133,8 @@ export function createNewGame(choices: CreationChoices, seed: number): GameState
     clock: { week: 1, dayIndex: 0, slotIndex: 0 },
     player,
     characters: {},
+    phone: { threads: {}, tipsGiven: [], lastTipDay: null },
+    dates: [],
     log: [
       {
         id: 'intro-0',

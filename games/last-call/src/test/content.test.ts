@@ -4,7 +4,15 @@ import { HOBBIES } from '@/content/hobbies';
 import { APARTMENTS, JOBS, WARDROBE } from '@/content/lifestyle';
 import { FLAW_LIST, PERK_LIST } from '@/content/traits';
 import { VENUE_LIST, VENUES } from '@/content/venues';
-import { CHARACTER_IDS, EXPRESSIONS, HOBBY_IDS, STAT_IDS, TOPIC_TAGS, VENUE_IDS } from '@/content/ids';
+import {
+  CHARACTER_IDS,
+  EXPRESSIONS,
+  HOBBY_IDS,
+  STAT_IDS,
+  TEXT_TONES,
+  TOPIC_TAGS,
+  VENUE_IDS,
+} from '@/content/ids';
 import { CHARACTER_LIST } from '@/content/characters';
 import { whereToFind } from '@/engine/characters';
 import { MINIMUM_CHARACTER_AGE } from '@/config/gameConfig';
@@ -135,6 +143,27 @@ describe('lifestyle ladders', () => {
 
 // --- Phase 2: characters and dialogue -------------------------------------
 
+describe('texting', () => {
+  it('gives every character a voice for all four tones, plus openers', () => {
+    for (const character of CHARACTER_LIST) {
+      for (const tone of TEXT_TONES) {
+        expect(character.texts.replies[tone].good.length).toBeGreaterThan(0);
+        expect(character.texts.replies[tone].bad.length).toBeGreaterThan(0);
+      }
+      expect(character.texts.opens.length).toBeGreaterThan(0);
+      expect(character.texts.acceptsDate.length).toBeGreaterThan(0);
+      expect(character.texts.declinesDate.length).toBeGreaterThan(0);
+      expect(character.texts.stoodUp.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('gives every character a date to play', () => {
+    for (const character of CHARACTER_LIST) {
+      expect(character.dateDialogue, `${character.id} has no date tree`).toBeDefined();
+    }
+  });
+});
+
 describe('characters', () => {
   it('are all adults and all women', () => {
     for (const character of CHARACTER_LIST) {
@@ -162,10 +191,16 @@ describe('characters', () => {
   });
 });
 
+/** Both the encounter tree and the date tree get the same structural checks. */
+const ALL_TREES = CHARACTER_LIST.flatMap((character) => [
+  { character, tree: character.dialogue, label: 'dialogue' },
+  ...(character.dateDialogue ? [{ character, tree: character.dateDialogue, label: 'date' }] : []),
+]);
+
 describe('dialogue trees', () => {
   it('only point at nodes that exist', () => {
-    for (const character of CHARACTER_LIST) {
-      const { nodes, openings } = character.dialogue;
+    for (const { character, tree } of ALL_TREES) {
+      const { nodes, openings } = tree;
       for (const opening of Object.values(openings)) {
         if (opening) expect(nodes[opening]).toBeDefined();
       }
@@ -178,8 +213,8 @@ describe('dialogue trees', () => {
   });
 
   it('give every node a line, and every ending an outcome with no replies', () => {
-    for (const character of CHARACTER_LIST) {
-      for (const node of Object.values(character.dialogue.nodes)) {
+    for (const { character, tree } of ALL_TREES) {
+      for (const node of Object.values(tree.nodes)) {
         expect(node.lines.length, `${character.id}:${node.id}`).toBeGreaterThan(0);
         for (const line of node.lines) {
           expect(EXPRESSIONS).toContain(line.expression);
@@ -195,9 +230,9 @@ describe('dialogue trees', () => {
   });
 
   it('only teach facts the character actually has', () => {
-    for (const character of CHARACTER_LIST) {
+    for (const { character, tree } of ALL_TREES) {
       const factIds = character.facts.map((fact) => fact.id);
-      for (const node of Object.values(character.dialogue.nodes)) {
+      for (const node of Object.values(tree.nodes)) {
         for (const option of node.options ?? []) {
           for (const fact of option.learn ?? []) {
             expect(factIds, `${character.id}: ${option.id} teaches ${fact}`).toContain(fact);
@@ -211,8 +246,8 @@ describe('dialogue trees', () => {
   });
 
   it('can be reached: every node hangs off an opening', () => {
-    for (const character of CHARACTER_LIST) {
-      const { nodes, openings } = character.dialogue;
+    for (const { character, tree } of ALL_TREES) {
+      const { nodes, openings } = tree;
       const seen = new Set<string>();
       const queue = Object.values(openings).filter((id): id is string => Boolean(id));
       while (queue.length > 0) {
@@ -228,8 +263,8 @@ describe('dialogue trees', () => {
   });
 
   it('give the player a way out of every node', () => {
-    for (const character of CHARACTER_LIST) {
-      for (const node of Object.values(character.dialogue.nodes)) {
+    for (const { character, tree } of ALL_TREES) {
+      for (const node of Object.values(tree.nodes)) {
         if (node.outcome) continue;
         const ids = (node.options ?? []).map((option) => option.id);
         expect(new Set(ids).size, `${character.id}:${node.id} has duplicate option ids`).toBe(ids.length);
