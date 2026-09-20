@@ -17,6 +17,7 @@ import { askOut, sendText } from '@/engine/phone';
 import { WINGMAN_ASSIST_BONUS, assistLine, tipFor } from '@/engine/wingman';
 import { dartsBonus, dartsVerdict } from '@/engine/darts';
 import { clearSave, hasSave, loadFromStorage, saveToStorage } from '@/engine/save';
+import { playCue, setMuted } from '@/engine/audio';
 
 export interface VenueVisit {
   venueId: VenueId;
@@ -59,6 +60,9 @@ export interface GameStore {
   endEncounter: () => void;
   closeEncounterSummary: () => void;
   openGallery: () => void;
+  openSettings: () => void;
+  dismissTip: (id: string) => void;
+  resetTips: () => void;
   openPhone: () => void;
   openThread: (id: string) => void;
   closeThread: () => void;
@@ -113,6 +117,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({ notice: result.reason });
       return;
     }
+    setMuted(!result.state.settings.sound);
     set({
       game: result.state,
       screen: 'city',
@@ -144,6 +149,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const next: GameState = { ...result.state, rngCursor: rng.cursor };
 
     if (goingOut && activity.venue) {
+      playCue('venue_enter');
       const venue = VENUES[activity.venue];
       set({
         game: commit(next),
@@ -163,6 +169,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
 
+    playCue(result.weekRolled ? 'week_end' : result.dayRolled ? 'day_end' : 'slot_spent');
     set({
       game: commit(afterClock(next, result.dayRolled, rng)),
       screen: result.weekRolled ? 'weekEnd' : result.dayRolled ? 'dayEnd' : 'city',
@@ -226,6 +233,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ screen: 'encounter', encounter: null, notice: null });
     try {
       const encounter = await beginEncounter(game, characterId, visit.venueId, visit.bonus);
+      playCue('line_her');
       set({ encounter });
     } catch (error) {
       set({
@@ -242,6 +250,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const rng = createRng(game.rngSeed, game.rngCursor);
     try {
       const next = await chooseOption(game, encounter, optionId, undefined, rng);
+      playCue('line_you');
+      if (next.lastInterestDelta > 0) playCue('interest_up');
+      if (next.lastInterestDelta < 0) playCue('interest_down');
+      if (next.lastComfortDelta < 0) playCue('comfort_down');
+      if (next.outcome === 'number' || next.outcome === 'date_planned') playCue('outcome_number');
+      if (next.outcome === 'rejected' || next.outcome === 'she_left') playCue('outcome_reject');
       set({ game: { ...game, rngCursor: rng.cursor }, encounter: next });
     } catch (error) {
       set({
@@ -293,6 +307,31 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   openGallery: () => set({ screen: 'gallery' }),
 
+  openSettings: () => set({ screen: 'settings' }),
+
+  dismissTip: (id) => {
+    const { game } = get();
+    if (!game) return;
+    set({
+      game: commit({
+        ...game,
+        player: { ...game.player, flags: { ...game.player.flags, [`tip_${id}`]: true } },
+      }),
+    });
+  },
+
+  resetTips: () => {
+    const { game } = get();
+    if (!game) return;
+    const flags = { ...game.player.flags };
+    for (const key of Object.keys(flags)) {
+      if (key.startsWith('tip_')) delete flags[key];
+    }
+    set({
+      game: commit({ ...game, player: { ...game.player, flags }, settings: { ...game.settings, showTips: true } }),
+    });
+  },
+
   openPhone: () => set({ screen: 'phone', openThreadId: null }),
 
   openThread: (id) => {
@@ -321,6 +360,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!game) return;
     const rng = createRng(game.rngSeed, game.rngCursor);
     const result = sendText(game, characterId, tone, text, rng);
+    playCue('text_sent');
+    playCue('text_received');
     set({
       game: commit({ ...result.state, rngCursor: rng.cursor }),
       notice: result.notes[0] ?? null,
@@ -372,6 +413,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({ notice: 'Nothing planned for right now.' });
       return;
     }
+    playCue('date_start');
     const paid = payForDate(game, due);
     set({ game: paid, screen: 'date', encounter: null, activeDate: due, notice: null });
     try {
@@ -389,7 +431,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   updateSettings: (patch) => {
     const { game } = get();
     if (!game) return;
-    set({ game: commit({ ...game, settings: { ...game.settings, ...patch } }) });
+    const settings = { ...game.settings, ...patch };
+    setMuted(!settings.sound);
+    set({ game: commit({ ...game, settings }) });
   },
 
   dismissNotice: () => set({ notice: null }),

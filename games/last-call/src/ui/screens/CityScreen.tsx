@@ -11,6 +11,7 @@ import { Button } from '@/ui/components/Button';
 import { LogFeed } from '@/ui/components/LogFeed';
 import { Meter } from '@/ui/components/Meter';
 import { StatsPanel } from '@/ui/components/StatsPanel';
+import { TipCard } from '@/ui/components/TipCard';
 
 type Tab = 'day' | 'you' | 'log';
 
@@ -22,8 +23,17 @@ const TABS: readonly { id: Tab; label: string }[] = [
 
 export function CityScreen({ game }: { game: GameState }) {
   const [tab, setTab] = useState<Tab>('day');
-  const { doActivity, skip, notice, dismissNotice, goToTitle, openGallery, openPhone, startDate } =
-    useGameStore();
+  const {
+    doActivity,
+    skip,
+    notice,
+    dismissNotice,
+    goToTitle,
+    openGallery,
+    openSettings,
+    openPhone,
+    startDate,
+  } = useGameStore();
   const dueDate = dateDueNow(game);
   const unread = Object.values(game.phone.threads).some((thread) => thread?.unread);
   const energy = energyReadout(game);
@@ -89,6 +99,7 @@ export function CityScreen({ game }: { game: GameState }) {
 
       {tab === 'day' && (
         <div className="flex flex-col gap-6">
+          <TipCard id="city" />
           {dueDate && (
             <button
               onClick={() => void startDate()}
@@ -134,6 +145,9 @@ export function CityScreen({ game }: { game: GameState }) {
           <LogFeed entries={game.log} />
           <Button variant="quiet" onClick={openGallery}>
             Gallery
+          </Button>
+          <Button variant="quiet" onClick={openSettings}>
+            Settings
           </Button>
           <Button variant="quiet" onClick={goToTitle}>
             Back to title (progress is saved)

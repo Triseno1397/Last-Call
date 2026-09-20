@@ -42,8 +42,8 @@ export const BALANCE = {
     min: 0,
     max: 100,
     /** XP needed for the next point = base + value * slope (diminishing returns). */
-    xpBase: 40,
-    xpSlope: 2.2,
+    xpBase: 34,
+    xpSlope: 1.9,
     startingValue: 25,
     /** Character creation adds this to stats favoured by chosen perks. */
     creationBonus: 5,
@@ -58,8 +58,14 @@ export const BALANCE = {
 
   awareness: {
     maxLevel: 4,
-    xpBase: 80,
-    xpCurve: 1.5,
+    /**
+     * Deliberately slow. The first hours of the game are meant to be played
+     * by reading her face, not a meter; level 1 lands after a few
+     * conversations, and the numbers only arrive once the player has earned
+     * the right to stop guessing.
+     */
+    xpBase: 130,
+    xpCurve: 1.6,
   },
 
   confidence: {
@@ -72,6 +78,17 @@ export const BALANCE = {
     failureStreakLoss: 4,
     /** XP granted by a rejection, so failure is still progress. */
     rejectionXp: 30,
+  },
+
+  conversation: {
+    /**
+     * Global dial on how fast interest climbs. Lower means she takes more
+     * convincing; mistakes are not scaled, so they always cost full price.
+     */
+    interestScale: 0.72,
+    /** Interest and comfort she needs before a bold move is even offered. */
+    boldInterest: 58,
+    boldComfort: 52,
   },
 
   money: {

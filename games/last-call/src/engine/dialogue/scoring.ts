@@ -6,6 +6,7 @@ import type { VenueDef } from '@/types/venues';
 import { effectiveStat } from '@/engine/progression';
 import { collectEffects } from '@/engine/traits';
 import { WARDROBE } from '@/content/lifestyle';
+import { BALANCE } from '@/config/gameConfig';
 
 /** Which stats carry a reply of each type. */
 export const TYPE_STATS: Readonly<Record<ResponseType, readonly StatId[]>> = {
@@ -139,6 +140,10 @@ export function scoreOption(input: ScoreInput): ScoreResult {
   // Her day scales everything: a good mood forgives, a bad one does not.
   const moodScale = 1 + mood / 40;
   interestDelta = interestDelta >= 0 ? interestDelta * moodScale : interestDelta / moodScale;
+
+  // Winning her over is meant to take a few visits, so gains are dialled back.
+  // Missteps are not: a bad line costs exactly what it says it costs.
+  if (interestDelta > 0) interestDelta *= BALANCE.conversation.interestScale;
 
   // Comfort: losses are amplified by flaws and by her already being uneasy.
   const comfortDecay = collectEffects(player, 'comfortDecayMultiplier').reduce(

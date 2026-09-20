@@ -62,7 +62,9 @@ npm run build
 - **Phase 4 (done)** — the phone: contacts, texting with tone and cadence, she
   texts first when she is interested, asking her out, a planned date that lands
   on the calendar, one full date scene per character, and Dez the wingman.
-- **Phase 5** — polish: transitions, sound hooks, onboarding, balance pass.
+- **Phase 5 (done)** — polish: screen transitions, a settings screen, sound
+  hooks wired at every moment that should make a noise, first-run coaching, and
+  a balance pass driven by a simulation of a sensible player.
 
 ## The conversation system
 
@@ -84,6 +86,30 @@ Work and train and read to become someone worth talking to. Go out on a night
 she is there. Read her face, because the meters are not there yet. Get a number.
 Text with some timing. Ask her out to something she would actually like. Turn
 up. Do not turn up and she will tell you about it.
+
+## Balance
+
+`src/config/gameConfig.ts` holds every number, and `src/test/balance.test.ts`
+simulates a sensible player — works weekdays, trains, goes out when someone is
+around, picks replies she likes — for three weeks and asserts the outcome:
+rent paid, several stats visibly grown, social awareness at level two, and at
+least one number. Run it with a report:
+
+```bash
+BALANCE_REPORT=1 npm run test -- src/test/balance.test.ts --reporter=verbose
+```
+
+Change a constant, run that, and see what it did to a real playthrough.
+
+## Sound
+
+No audio ships, but every moment that should make a noise already calls
+`playCue` (`src/engine/audio.ts`). Registering a player is one call at startup
+and no call sites change:
+
+```ts
+registerAudioPlayer((cue) => howler.play(cue));
+```
 
 ## Content rating
 

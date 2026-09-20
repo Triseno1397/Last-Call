@@ -22,6 +22,8 @@ const MIGRATIONS: Readonly<Record<number, Migration>> = {
         contentRating: 'suggestive',
         reducedMotion: false,
         alwaysShowMeters: false,
+        sound: true,
+        showTips: true,
       },
       lastWeek: state['lastWeek'] ?? null,
       player: { ...player, venueReputation: player['venueReputation'] ?? {} },
@@ -36,7 +38,8 @@ const MIGRATIONS: Readonly<Record<number, Migration>> = {
       player: { ...player, gender: player['gender'] ?? 'man' },
     };
   },
-  // 2 -> 3: the phone, scheduled dates and texting cadence.
+  // 2 -> 3: the phone, scheduled dates and texting cadence, plus the settings
+  // added by the polish pass.
   2: (state) => {
     const characters = (state['characters'] ?? {}) as Record<string, Record<string, unknown>>;
     const upgraded: Record<string, unknown> = {};
@@ -48,11 +51,13 @@ const MIGRATIONS: Readonly<Record<number, Migration>> = {
         standUps: memory['standUps'] ?? 0,
       };
     }
+    const settings = (state['settings'] ?? {}) as Record<string, unknown>;
     return {
       ...state,
       characters: upgraded,
       phone: state['phone'] ?? { threads: {}, tipsGiven: [], lastTipDay: null },
       dates: state['dates'] ?? [],
+      settings: { ...settings, sound: settings['sound'] ?? true, showTips: settings['showTips'] ?? true },
     };
   },
 };

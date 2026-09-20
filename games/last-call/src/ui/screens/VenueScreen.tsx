@@ -11,6 +11,7 @@ import { Button } from '@/ui/components/Button';
 import { Chip } from '@/ui/components/Chip';
 import { CharacterPortrait } from '@/ui/components/CharacterPortrait';
 import { DartsGame } from '@/ui/components/DartsGame';
+import { TipCard } from '@/ui/components/TipCard';
 import { WINGMAN } from '@/content/wingman';
 import { wingmanIsAround } from '@/engine/wingman';
 
@@ -29,6 +30,8 @@ export function VenueScreen({ game, visit }: { game: GameState; visit: VenueVisi
         <h1 className="font-display text-3xl font-bold leading-tight">{venue.name}</h1>
         <p className="text-sm text-ink-500">{venue.tagline}</p>
       </header>
+
+      <TipCard id="venue" />
 
       <p className="panel-flat px-4 py-3 text-sm italic text-ink-300">{visit.atmosphere}</p>
 

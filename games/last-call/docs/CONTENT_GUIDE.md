@@ -295,6 +295,18 @@ is authored for `'suggestive'`, romance fades to black, and every character is
 21 or older. Use `allowsContent('suggestive')` to gate anything spicier than a
 raised eyebrow.
 
+## Onboarding tips
+
+`src/content/onboarding.ts`. Each tip is an id, a title and two sentences, shown
+once, stored as a `tip_<id>` player flag, and switchable in settings. Place one
+with `<TipCard id="venue" />`; it renders nothing once it has been read.
+
+## Sound cues
+
+`src/engine/audio.ts` holds the cue list. Add a cue name there and call
+`playCue('your_cue')` where it belongs. Nothing plays until a real audio player
+is registered, and a broken sound can never break a conversation.
+
 ## Running things
 
 ```bash

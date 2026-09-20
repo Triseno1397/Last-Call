@@ -8,6 +8,7 @@ import { useGameStore } from '@/state/gameStore';
 import { Button } from '@/ui/components/Button';
 import { Chip } from '@/ui/components/Chip';
 import { CharacterPortrait } from '@/ui/components/CharacterPortrait';
+import { TipCard } from '@/ui/components/TipCard';
 
 export function EncounterEndScreen({
   game,
@@ -58,6 +59,8 @@ export function EncounterEndScreen({
             </Chip>
           </div>
         </div>
+
+        {(outcome === 'rejected' || outcome === 'she_left') && <TipCard id="rejection" />}
 
         {learnedFacts.length > 0 && (
           <section className="panel p-4">

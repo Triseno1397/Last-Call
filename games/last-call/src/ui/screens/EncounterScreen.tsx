@@ -9,6 +9,7 @@ import { useGameStore } from '@/state/gameStore';
 import { Button } from '@/ui/components/Button';
 import { CharacterPortrait } from '@/ui/components/CharacterPortrait';
 import { MeterReadoutView } from '@/ui/components/MeterReadoutView';
+import { TipCard } from '@/ui/components/TipCard';
 
 const TYPE_LABELS: Record<ResponseType, string> = {
   joke: 'joke',
@@ -76,6 +77,8 @@ export function EncounterScreen({ game, encounter }: { game: GameState; encounte
           )}
         </div>
       </div>
+
+      <TipCard id="encounter" />
 
       <section className="panel rise-in p-4">
         <p className="font-display text-lg leading-snug text-ink-100">&ldquo;{encounter.line}&rdquo;</p>

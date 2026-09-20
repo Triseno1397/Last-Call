@@ -12,6 +12,7 @@ import { useGameStore } from '@/state/gameStore';
 import { Button } from '@/ui/components/Button';
 import { Chip } from '@/ui/components/Chip';
 import { CharacterPortrait } from '@/ui/components/CharacterPortrait';
+import { TipCard } from '@/ui/components/TipCard';
 
 export function PhoneScreen({ game }: { game: GameState }) {
   const { openThread, acknowledgeDay } = useGameStore();
@@ -26,6 +27,8 @@ export function PhoneScreen({ game }: { game: GameState }) {
           {list.length === 0 ? 'No numbers yet. Go and earn one.' : `${list.length} contact${list.length === 1 ? '' : 's'}`}
         </p>
       </header>
+
+      <TipCard id="phone" />
 
       {dates.length > 0 && (
         <section className="panel p-4">

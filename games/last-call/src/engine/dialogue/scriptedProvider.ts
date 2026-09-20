@@ -85,10 +85,28 @@ export function presentOptions(
   interest: number,
   comfort: number,
 ): readonly PresentedOption[] {
+  const tree =
+    context.mode === 'date' && context.character.dateDialogue
+      ? context.character.dateDialogue
+      : context.character.dialogue;
+
   return (node.options ?? []).map((option: DialogueOptionDef) => {
     const failed = (option.requires ?? []).filter(
       (requirement) => !meetsRequirement(requirement, context, interest, comfort),
     );
+
+    // Asking for a number you already have is not a move.
+    const leadsToNumber = tree.nodes[option.next]?.outcome === 'number';
+    if (leadsToNumber && context.memory.hasNumber) {
+      return {
+        id: option.id,
+        type: option.type,
+        text: option.text,
+        available: false,
+        lockReason: 'You already have her number — use it.',
+      };
+    }
+
     return {
       id: option.id,
       type: option.type,

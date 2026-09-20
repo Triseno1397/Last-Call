@@ -11,6 +11,7 @@ import { EncounterEndScreen } from '@/ui/screens/EncounterEndScreen';
 import { GalleryScreen } from '@/ui/screens/GalleryScreen';
 import { PhoneScreen } from '@/ui/screens/PhoneScreen';
 import { ThreadScreen } from '@/ui/screens/ThreadScreen';
+import { SettingsScreen } from '@/ui/screens/SettingsScreen';
 
 export function App(): ReactElement {
   const screen = useGameStore((store) => store.screen);
@@ -49,6 +50,8 @@ export function App(): ReactElement {
         return <EncounterEndScreen game={game} encounter={encounter} />;
       case 'gallery':
         return <GalleryScreen game={game} />;
+      case 'settings':
+        return <SettingsScreen game={game} />;
       case 'city':
         return <CityScreen game={game} />;
       default:
@@ -56,9 +59,15 @@ export function App(): ReactElement {
     }
   };
 
+  const reduced = game?.settings.reducedMotion ?? false;
+
   return (
-    <div className="min-h-[100dvh] w-full">
-      <div className="mx-auto flex min-h-[100dvh] w-full max-w-[720px] flex-col px-4">{body()}</div>
+    <div className="min-h-[100dvh] w-full" data-reduced-motion={reduced ? 'true' : undefined}>
+      <div className="mx-auto flex min-h-[100dvh] w-full max-w-[720px] flex-col px-4">
+        <div key={screen} className={reduced ? '' : 'screen-in'}>
+          {body()}
+        </div>
+      </div>
     </div>
   );
 }

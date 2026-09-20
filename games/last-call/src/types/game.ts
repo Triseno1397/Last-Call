@@ -17,7 +17,8 @@ export type ScreenId =
   | 'gallery'
   | 'phone'
   | 'thread'
-  | 'date';
+  | 'date'
+  | 'settings';
 
 export type LogTone = 'neutral' | 'good' | 'bad' | 'flavour' | 'milestone';
 
@@ -48,6 +49,9 @@ export interface GameSettings {
   reducedMotion: boolean;
   /** Forces numeric meters on even at low awareness. Off by default. */
   alwaysShowMeters: boolean;
+  sound: boolean;
+  /** First-run coaching. Off means no tips at all. */
+  showTips: boolean;
 }
 
 export interface GameState {
