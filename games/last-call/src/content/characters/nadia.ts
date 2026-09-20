@@ -1233,6 +1233,13 @@ export const NADIA: CharacterDef = {
   tagline: 'physiotherapist, powerlifter, worst salsa dancer in her class',
   bio: "Moved here after a divorce at twenty-nine and has not been bored since. Turns conversations into bets and bets into a good evening. Fixes people's backs for a living, which means she has heard your theory about your knee before.",
   personality: ['blunt', 'competitive', 'playful', 'bored by nonsense', 'warmer than the volume suggests'],
+  voice: [
+    'Blunt and fast, mean the way friends are mean.',
+    'She turns everything into a bet, a rep count or a dare.',
+    'Small talk bores her visibly and she does not hide it.',
+    'She likes being met head on and has no interest in being handled.',
+    'Warmer than the volume suggests.',
+  ],
   likes: ['direct', 'banter', 'fitness', 'curiosity', 'innuendo'],
   dislikes: ['small_talk', 'flattery', 'pushy', 'bragging'],
   dealbreaker: {

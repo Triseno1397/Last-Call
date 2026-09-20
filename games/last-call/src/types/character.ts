@@ -68,6 +68,8 @@ export interface CharacterDef {
   tagline: string;
   bio: string;
   personality: readonly string[];
+  /** How she talks. Read by the AI provider as direction for an actor. */
+  voice: readonly string[];
   likes: readonly TopicTag[];
   dislikes: readonly TopicTag[];
   /** The one thing she will not forgive. */

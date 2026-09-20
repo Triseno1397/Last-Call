@@ -153,6 +153,8 @@ export function createNewGame(choices: CreationChoices, seed: number): GameState
       alwaysShowMeters: false,
       sound: true,
       showTips: true,
+      dialogueMode: 'scripted',
+      aiModel: 'claude-opus-5',
     },
     rngSeed: seed,
     rngCursor: 0,

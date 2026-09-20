@@ -1210,6 +1210,13 @@ export const WREN: CharacterDef = {
   tagline: 'annotates library books in pencil like a considerate criminal',
   bio: "Two years late on a thesis about urban loneliness, four hours of sleep a night, and a film camera she refuses to justify. Argues with footnotes, strangers and the shelving system. Cannot be flattered, can absolutely be interested.",
   personality: ['curious', 'tangential', 'precise', 'allergic to being handled', 'delighted by being caught'],
+  voice: [
+    'She talks in tangents that land somewhere useful.',
+    'She deflects compliments with facts. Flattery confuses her, then bores her.',
+    'She asks what you think and actually waits for the answer.',
+    'Excitable about ideas, precise about words, embarrassed about both.',
+    'She will catch a lie instantly, because she has read the book.',
+  ],
   likes: ['curiosity', 'books', 'banter', 'direct', 'art'],
   dislikes: ['bragging', 'flattery', 'small_talk', 'pushy'],
   dealbreaker: {

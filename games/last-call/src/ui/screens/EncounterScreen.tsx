@@ -10,6 +10,7 @@ import { Button } from '@/ui/components/Button';
 import { CharacterPortrait } from '@/ui/components/CharacterPortrait';
 import { MeterReadoutView } from '@/ui/components/MeterReadoutView';
 import { TipCard } from '@/ui/components/TipCard';
+import { SayAnything } from '@/ui/components/SayAnything';
 
 const TYPE_LABELS: Record<ResponseType, string> = {
   joke: 'joke',
@@ -34,7 +35,9 @@ const TYPE_TONE: Record<ResponseType, string> = {
 };
 
 export function EncounterScreen({ game, encounter }: { game: GameState; encounter: EncounterState | null }) {
-  const { pickOption, endEncounter } = useGameStore();
+  const { pickOption, endEncounter, sayTo, canSpeakFreely, walkAway, notice, dismissNotice } =
+    useGameStore();
+  const freeText = canSpeakFreely();
 
   if (!encounter) {
     return (
@@ -80,6 +83,15 @@ export function EncounterScreen({ game, encounter }: { game: GameState; encounte
 
       <TipCard id="encounter" />
 
+      {notice && (
+        <button
+          onClick={dismissNotice}
+          className="rounded-xl border border-gold-400/40 bg-gold-400/10 px-3 py-2 text-left text-xs text-gold-400"
+        >
+          {notice}
+        </button>
+      )}
+
       <section className="panel rise-in p-4">
         <p className="font-display text-lg leading-snug text-ink-100">&ldquo;{encounter.line}&rdquo;</p>
         {encounter.cue && <p className="mt-3 text-sm italic text-glow-400">{encounter.cue}</p>}
@@ -103,6 +115,11 @@ export function EncounterScreen({ game, encounter }: { game: GameState; encounte
         </div>
       ) : (
         <div className="mt-auto flex flex-col gap-2 pb-2">
+          {freeText && encounter.options.length > 0 && (
+            <p className="text-[0.62rem] uppercase tracking-[0.18em] text-ink-600">
+              Suggestions — or say something of your own
+            </p>
+          )}
           {encounter.options.map((option) => (
             <button
               key={option.id}
@@ -129,6 +146,21 @@ export function EncounterScreen({ game, encounter }: { game: GameState; encounte
               )}
             </button>
           ))}
+          {freeText && (
+            <>
+              <SayAnything busy={encounter.busy} onSay={(text) => void sayTo(text)} />
+              <button
+                onClick={walkAway}
+                disabled={encounter.busy}
+                className="tap self-center px-3 py-2 text-xs text-ink-600 hover:text-ink-300 disabled:opacity-50"
+              >
+                Walk away
+              </button>
+            </>
+          )}
+          {encounter.busy && !freeText && (
+            <p className="text-center text-xs text-ink-600">She is thinking...</p>
+          )}
           <div className="safe-bottom" />
         </div>
       )}

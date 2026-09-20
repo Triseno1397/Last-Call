@@ -39,13 +39,15 @@ npm run build
 | `src/config/gameConfig.ts` | `CONTENT_RATING` and every balance number |
 | `src/types` | The shapes content and state must satisfy |
 | `src/engine` | Pure rules: progression, calendar, activity resolution, saves, RNG |
-| `src/engine/dialogue` | Conversation scoring, the scripted provider, the LLM provider stub |
+| `src/engine/dialogue` | Conversation scoring, the written provider, the AI provider |
+| `server/` | The dialogue service that holds the API key for AI mode |
 | `src/content/characters` | Characters, their dialogue trees and their date scenes |
 | `src/state` | Zustand store and UI selectors |
 | `src/ui` | Screens and components |
 | `src/test` | Unit tests |
 | `docs/CONTENT_GUIDE.md` | How to add a character, venue, activity or trait |
 | `docs/ART_GUIDE.md` | Portrait layers, sizes, naming convention, gallery |
+| `docs/AI_DIALOGUE.md` | AI mode: running it, who decides what, the prompt, cost |
 
 ## Build phases
 
@@ -72,9 +74,16 @@ The game never reads a dialogue tree. It calls `open()` and `respond()` on a
 `DialogueProvider` and gets back her line, an expression, a body-language cue,
 interest and comfort deltas, and the next set of replies.
 
-- `ScriptedDialogueProvider` — ships, reads authored trees from `src/content`.
-- `LLMDialogueProvider` — a documented stub in `engine/dialogue/llmProvider.ts`.
-  Swapping it in is one line in `engine/encounter.ts`; nothing else changes.
+- **Written mode** — `ScriptedDialogueProvider`, the authored trees in
+  `src/content`. Works offline, always.
+- **AI mode** — type anything and she answers in character, powered by Claude.
+  The model writes her words; the game still decides what they are worth, and it
+  cannot hand out a win the player has not earned. Full details, including how
+  to run it and what it costs: **`docs/AI_DIALOGUE.md`**.
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-... npm run dev   # then Settings -> AI - say anything
+```
 
 What the player can see of her state depends on their social awareness level:
 nothing at all at first (just her face and what she does with her hands), then

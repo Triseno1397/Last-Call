@@ -1,0 +1,68 @@
+import type { GameState } from '@/types/game';
+import type { DialogueProvider } from '@/types/dialogue';
+import type { AiModel, FreeTextProvider } from '@/engine/dialogue/llmProvider';
+import { createScriptedDialogueProvider } from '@/engine/dialogue/scriptedProvider';
+import { createLlmDialogueProvider } from '@/engine/dialogue/llmProvider';
+
+/**
+ * Which voice is answering.
+ *
+ * Scripted is the default and always works offline. AI mode needs the dialogue
+ * service (`npm run dev` with ANTHROPIC_API_KEY set, or `npm run serve:ai`), or
+ * a key the player has pasted in themselves.
+ */
+export const KEY_STORAGE = 'last-call:ai-key';
+
+export const scriptedProvider: DialogueProvider = createScriptedDialogueProvider();
+
+export function readStoredKey(): string | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage.getItem(KEY_STORAGE);
+  } catch {
+    return null;
+  }
+}
+
+export function storeKey(key: string | null): void {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    if (key) localStorage.setItem(KEY_STORAGE, key);
+    else localStorage.removeItem(KEY_STORAGE);
+  } catch {
+    // Storage disabled: AI mode falls back to the server key for this session.
+  }
+}
+
+export function createAiProvider(model: AiModel): FreeTextProvider {
+  const apiKey = readStoredKey();
+  return createLlmDialogueProvider(apiKey ? { model, apiKey } : { model });
+}
+
+/** The provider for this game's current settings. */
+export function providerFor(state: GameState): DialogueProvider {
+  return state.settings.dialogueMode === 'ai'
+    ? createAiProvider(state.settings.aiModel)
+    : scriptedProvider;
+}
+
+export function supportsFreeText(provider: DialogueProvider): provider is FreeTextProvider {
+  return typeof provider.say === 'function';
+}
+
+/** Is the dialogue service up, and does it have a key? */
+export async function checkService(
+  endpoint = '/api/dialogue',
+): Promise<{ ok: boolean; hasKey: boolean; model?: string; reason?: string }> {
+  try {
+    const response = await fetch(endpoint, { method: 'GET' });
+    if (!response.ok) return { ok: false, hasKey: false, reason: `Service returned ${response.status}` };
+    const body = (await response.json()) as { hasKey?: boolean; model?: string };
+    return { ok: true, hasKey: Boolean(body.hasKey), ...(body.model ? { model: body.model } : {}) };
+  } catch (error) {
+    return {
+      ok: false,
+      hasKey: false,
+      reason: error instanceof Error ? error.message : 'Service unreachable',
+    };
+  }
+}

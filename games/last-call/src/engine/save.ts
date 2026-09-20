@@ -60,6 +60,18 @@ const MIGRATIONS: Readonly<Record<number, Migration>> = {
       settings: { ...settings, sound: settings['sound'] ?? true, showTips: settings['showTips'] ?? true },
     };
   },
+  // 3 -> 4: AI dialogue settings.
+  3: (state) => {
+    const settings = (state['settings'] ?? {}) as Record<string, unknown>;
+    return {
+      ...state,
+      settings: {
+        ...settings,
+        dialogueMode: settings['dialogueMode'] ?? 'scripted',
+        aiModel: settings['aiModel'] ?? 'claude-opus-5',
+      },
+    };
+  },
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

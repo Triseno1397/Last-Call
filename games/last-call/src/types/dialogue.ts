@@ -9,6 +9,7 @@ import type {
   TopicTag,
 } from '@/content/ids';
 import type { CharacterDef, CharacterMemory, MoodBand } from '@/types/character';
+import type { ContentRating } from '@/types/core';
 import type { PlayerState } from '@/types/player';
 import type { VenueDef } from '@/types/venues';
 
@@ -68,6 +69,13 @@ export interface DialogueTree {
   nodes: Readonly<Record<string, DialogueNode>>;
 }
 
+export interface EncounterBeat {
+  speaker: 'her' | 'you';
+  text: string;
+  /** Present on her beats when the player is aware enough to read it. */
+  cue?: string | null;
+}
+
 // --- Provider interface ---------------------------------------------------
 
 export interface EncounterContext {
@@ -89,6 +97,8 @@ export interface EncounterContext {
   startingComfort: number;
   /** Why they start there — shown as a cue before the first line. */
   openingNotes: readonly string[];
+  /** What the game currently allows to be written. Enforced server-side too. */
+  contentRating: ContentRating;
 }
 
 export interface PresentedOption {
@@ -129,6 +139,10 @@ export interface EncounterProgress {
   cursor: ProviderCursor;
   interest: number;
   comfort: number;
+  /** What was on screen when the player chose. A provider may need the text. */
+  options?: readonly PresentedOption[];
+  /** The conversation so far, oldest first. */
+  beats?: readonly EncounterBeat[];
 }
 
 /**
@@ -141,6 +155,12 @@ export interface EncounterProgress {
  */
 export interface DialogueProvider {
   readonly id: string;
+  /** Present when the player can type anything rather than pick a reply. */
+  say?: (
+    context: EncounterContext,
+    progress: EncounterProgress,
+    text: string,
+  ) => Promise<ProviderTurn>;
   /** Her opening line and the first set of replies. */
   open(context: EncounterContext): Promise<ProviderTurn>;
   /** The player picked a reply; she responds. */
@@ -149,13 +169,6 @@ export interface DialogueProvider {
     progress: EncounterProgress,
     optionId: string,
   ): Promise<ProviderTurn>;
-}
-
-export interface EncounterBeat {
-  speaker: 'her' | 'you';
-  text: string;
-  /** Present on her beats when the player is aware enough to read it. */
-  cue?: string | null;
 }
 
 export interface EncounterState {

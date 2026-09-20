@@ -276,6 +276,22 @@ The wingman lives in `src/content/wingman.ts`. His tips are data; one a day, nev
 repeated, and some of them hand the player a fact they would otherwise have to
 discover.
 
+### Writing for both modes
+
+A character is played two ways from the same file. Written mode reads her
+`dialogue` tree. AI mode reads her sheet — `bio`, `personality`, `likes`,
+`dislikes`, `dealbreaker`, `interests` — plus two fields written for it:
+
+- **`voice`** — direction for an actor. Three to five lines, concrete, about how
+  she talks rather than who she is. Sable's first rule is "Short sentences. She
+  does not explain herself twice."
+- Her authored lines. The AI provider samples her actual tree and shows the
+  model how she sounds, so a new character's dialogue tree improves her AI
+  version for free.
+
+Keep `likes` and `dislikes` honest: both modes score against them, and in AI
+mode they are also what the model is told she cares about.
+
 ### Which provider is running
 
 The game talks to a `DialogueProvider`, never to a tree.

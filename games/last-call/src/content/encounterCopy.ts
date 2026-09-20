@@ -18,6 +18,13 @@ export const FORCED_ENDINGS: Readonly<Record<'she_left' | 'wind_down', readonly 
   ],
 };
 
+/** When the player chooses to end it himself, rather than being let go. */
+export const PLAYER_EXITS: readonly string[] = [
+  'You make your excuses while it is still going well, which is its own kind of skill.',
+  'You say goodnight, mean it, and leave before the conversation can sag.',
+  'You take the exit. Sometimes the move is knowing when the scene is over.',
+];
+
 export const OUTCOME_LINES: Readonly<Record<EncounterOutcome, string>> = {
   number: 'You have her number.',
   date_planned: 'You have plans. Actual plans, with a time attached.',

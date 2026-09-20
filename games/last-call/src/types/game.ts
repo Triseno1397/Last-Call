@@ -50,6 +50,9 @@ export interface GameSettings {
   /** Forces numeric meters on even at low awareness. Off by default. */
   alwaysShowMeters: boolean;
   sound: boolean;
+  /** 'scripted' plays the authored trees; 'ai' lets the player type anything. */
+  dialogueMode: 'scripted' | 'ai';
+  aiModel: 'claude-opus-5' | 'claude-sonnet-5' | 'claude-haiku-4-5';
   /** First-run coaching. Off means no tips at all. */
   showTips: boolean;
 }

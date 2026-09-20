@@ -11,7 +11,7 @@ import type {
 import { getCharacter } from '@/content/characters';
 import { VENUES } from '@/content/venues';
 import { FORCED_ENDINGS, OUTCOME_LINES, OUTCOME_TONE } from '@/content/encounterCopy';
-import { createScriptedDialogueProvider } from '@/engine/dialogue/scriptedProvider';
+import { scriptedProvider } from '@/engine/dialogue/providers';
 import { TYPE_STATS } from '@/engine/dialogue/scoring';
 import { absoluteDay, appendLog, makeLogEntry } from '@/engine/calendar';
 import { decayInterest, memoryFor, moodBand, moodValueFor, nextStage } from '@/engine/characters';
@@ -26,11 +26,11 @@ import {
 } from '@/engine/reputation';
 
 /**
- * The provider the game is currently talking to. Swapping this line for
- * `createLlmDialogueProvider()` is the entire integration: nothing below this
- * module knows which one is running.
+ * The default provider. AI mode swaps in `createAiProvider()` per encounter
+ * (see `engine/dialogue/providers.ts`); nothing in this module or above it
+ * knows or cares which one is running.
  */
-export const dialogueProvider: DialogueProvider = createScriptedDialogueProvider();
+export const dialogueProvider: DialogueProvider = scriptedProvider;
 
 const MIN_COMFORT = 0;
 const MAX_METER = 100;
@@ -71,6 +71,7 @@ export function buildContext(
     moodValue,
     openingBonus,
     awareness: effectiveAwareness(state.player),
+    contentRating: state.settings.contentRating,
     mode,
     startingInterest,
     startingComfort,
@@ -155,15 +156,37 @@ export async function chooseOption(
   );
   const turn = await provider.respond(
     context,
-    { cursor: encounter.cursor, interest: encounter.interest, comfort: encounter.comfort },
+    {
+      cursor: encounter.cursor,
+      interest: encounter.interest,
+      comfort: encounter.comfort,
+      options: encounter.options,
+      beats: encounter.beats,
+    },
     optionId,
   );
 
+  return applyTurn(state, encounter, turn, { speaker: 'you', text: option.text }, context, rng);
+}
+
+/**
+ * The rules that hold whatever she said and whoever wrote it: comfort on the
+ * floor ends the conversation, a dealbreaker ends it for good, and her patience
+ * is finite.
+ */
+function applyTurn(
+  _state: GameState,
+  encounter: EncounterState,
+  turn: ProviderTurn,
+  playerBeat: { speaker: 'you'; text: string },
+  context: EncounterContext,
+  rng?: Rng,
+): EncounterState {
   const interest = clampMeter(encounter.interest + turn.interestDelta);
   const comfort = clampMeter(encounter.comfort + turn.comfortDelta);
   const withPlayerBeat: EncounterState = {
     ...encounter,
-    beats: [...encounter.beats, { speaker: 'you', text: option.text }],
+    beats: [...encounter.beats, playerBeat],
   };
   let next = stateFromTurn(context, turn, withPlayerBeat, interest, comfort);
 
@@ -171,14 +194,15 @@ export async function chooseOption(
     rng ? rng.pick(lines) : (lines[0] as string);
 
   if (!next.outcome && (comfort <= MIN_COMFORT || next.dealbroken)) {
+    const line = pick(FORCED_ENDINGS.she_left);
     next = {
       ...next,
-      line: pick(FORCED_ENDINGS.she_left),
+      line,
       cue: null,
       expression: next.dealbroken ? 'annoyed' : 'uncomfortable',
       options: [],
       outcome: 'she_left',
-      beats: [...next.beats.slice(0, -1), { speaker: 'her', text: pick(FORCED_ENDINGS.she_left), cue: null }],
+      beats: [...next.beats.slice(0, -1), { speaker: 'her', text: line, cue: null }],
     };
   } else if (!next.outcome && turn.cursor.turn > context.character.patience) {
     const windDown = pick(FORCED_ENDINGS.wind_down);
@@ -193,6 +217,44 @@ export async function chooseOption(
   }
 
   return next;
+}
+
+/**
+ * The player typed something of his own. Identical to choosing a reply from
+ * here on: the same clamps, the same hard rules, the same memory.
+ */
+export async function sayToHer(
+  state: GameState,
+  encounter: EncounterState,
+  text: string,
+  provider: DialogueProvider,
+  rng?: Rng,
+): Promise<EncounterState> {
+  if (!provider.say) throw new Error('This provider does not take free text.');
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return encounter;
+
+  const context = buildContext(
+    state,
+    encounter.characterId as CharacterId,
+    encounter.venueId as VenueId,
+    encounter.openingBonus,
+    encounter.mode,
+  );
+
+  const turn = await provider.say(
+    context,
+    {
+      cursor: encounter.cursor,
+      interest: encounter.interest,
+      comfort: encounter.comfort,
+      options: encounter.options,
+      beats: encounter.beats,
+    },
+    trimmed,
+  );
+
+  return applyTurn(state, encounter, turn, { speaker: 'you', text: trimmed }, context, rng);
 }
 
 function blendInterest(memory: CharacterMemory, finalInterest: number): number {

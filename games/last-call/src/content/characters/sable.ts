@@ -1416,6 +1416,13 @@ export const SABLE: CharacterDef = {
   tagline: 'runs the bar, the jukebox, and the room',
   bio: "Six years behind the bar at Last Call, two years of law school she does not discuss, and a locked jukebox playlist she absolutely does. Quick, dry, and kinder than she lets on. She has heard every line in this building twice.",
   personality: ['sharp', 'dry', 'observant', 'warmer than she admits', 'allergic to performance'],
+  voice: [
+    'Short sentences. She does not explain herself twice.',
+    'She has heard every line in this building. Flattery bounces off her.',
+    'Dry, fast, a little mean in a way that means she likes you.',
+    'She asks real questions and listens to the answers.',
+    'Warm underneath, and she hates that it shows.',
+  ],
   likes: ['direct', 'banter', 'curiosity', 'music', 'food'],
   dislikes: ['flattery', 'bragging', 'negging', 'small_talk', 'pushy'],
   dealbreaker: {
