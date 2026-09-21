@@ -104,6 +104,34 @@ asset appears there only once the player has unlocked it in play; locked entries
 show as silhouettes with the unlock hint. Unlocks are recorded in the save file,
 so the gallery survives a reload.
 
+## Walking characters are drawn, not imported
+
+The people on the block come out of `src/ui/art/sprite.ts`, which builds a body
+from parts — shadow, legs, torso, arms, head, face, hair — every frame. Nothing
+is loaded; a character is a `CharacterLook`:
+
+| Field | What it drives |
+| --- | --- |
+| `build` | shoulder, waist and hip width, torso length, limb thickness |
+| `hairStyle` | which silhouette `drawHairBack` / `drawHairFront` draw |
+| `hair`, `hairShadow` | hair fill and the shaded pieces behind the head |
+| `skin`, `eyes` | head, hands, and the face |
+| `top`, `bottom`, `accent` | shirt, trousers, and the collar and waistband |
+
+`src/ui/art/looks.ts` is the only place that turns game data into one of those:
+`playerLook` reads the appearance chosen in creation, `characterLook` reads a
+character's outfit palette, `extraLook` derives a passer-by from an index. Add
+an appearance option and you add a row there — the renderer never learns what a
+vibe is.
+
+Proportions are near seven heads rather than chibi, because at this size a big
+round head reads as a doll. Two things carry the walk: stride length when
+facing sideways, alternating foot lift when facing towards or away.
+
+This is not a placeholder for the layered sprite system below — it is what the
+open world uses. Imported portrait art still governs conversations and the
+gallery; the two do not compete.
+
 ## Placeholder art in the prototype
 
 Until final art lands, characters render as layered SVG portraits built from the

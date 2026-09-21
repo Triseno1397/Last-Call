@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CityDoor } from '@/content/city';
 import type { GameState } from '@/types/game';
 import {
@@ -15,7 +15,8 @@ import { getCharacter } from '@/content/characters';
 import { DAY_LABELS, SLOT_LABELS, currentDay, currentSlot } from '@/engine/calendar';
 import { doorNear, doorState, lightLevel, step } from '@/engine/city';
 import { useGameStore } from '@/state/gameStore';
-import { HAIR_COLORS } from '@/content/appearance';
+import { characterLook, extraLook, playerLook } from '@/ui/art/looks';
+import { drawCharacter, facingFrom, type Facing } from '@/ui/art/sprite';
 import { Button } from '@/ui/components/Button';
 
 const WIDTH = CITY_WIDTH * TILE;
@@ -28,7 +29,7 @@ const SPEED = 6.5; // tiles per second
  * whatever space the panel has, follows the player, and stops at the edges of
  * the world.
  */
-const TILES_ACROSS = 17;
+const TILES_ACROSS = 11;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -41,10 +42,6 @@ const SURFACE_COLOURS: Record<string, string> = {
   park: '#16241d',
   water: '#0b1626',
 };
-
-function hairColour(id: string): string {
-  return HAIR_COLORS.find((option) => option.id === id)?.swatch ?? '#d8b06a';
-}
 
 /** The static world, drawn once and blitted every frame. */
 function paintWorld(ctx: CanvasRenderingContext2D): void {
@@ -119,35 +116,6 @@ function paintWorld(ctx: CanvasRenderingContext2D): void {
   }
 }
 
-function drawPerson(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  bodyColour: string,
-  hair: string,
-  scale = 1,
-): void {
-  const px = x * TILE;
-  const py = y * TILE;
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-  ctx.beginPath();
-  ctx.ellipse(px, py + 7 * scale, 6 * scale, 2.6 * scale, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = bodyColour;
-  ctx.fillRect(px - 4 * scale, py - 4 * scale, 8 * scale, 11 * scale);
-
-  ctx.fillStyle = '#e8c4a8';
-  ctx.beginPath();
-  ctx.arc(px, py - 7 * scale, 4.6 * scale, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = hair;
-  ctx.beginPath();
-  ctx.arc(px, py - 8.4 * scale, 4.8 * scale, Math.PI, Math.PI * 2);
-  ctx.fill();
-}
-
 export function CityMapScreen({ game }: { game: GameState }) {
   const { enterVenueFromMap, closeCity } = useGameStore();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -156,11 +124,20 @@ export function CityMapScreen({ game }: { game: GameState }) {
   const position = useRef({ ...CITY_SPAWN });
   const held = useRef<Record<string, boolean>>({});
   const stick = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
+  // Which way you are pointing, and how far through a stride you are. Refs,
+  // not state: they change every frame and nothing outside the canvas cares.
+  const facing = useRef<Facing>('down');
+  const walkPhase = useRef(0);
   const [near, setNear] = useState<CityDoor | null>(null);
 
   const light = lightLevel(game);
   const reduced = game.settings.reducedMotion;
-  const playerHair = hairColour(game.player.appearance.hairColor);
+  // Memoised: the frame loop lists it as a dependency, and a fresh object each
+  // render would tear the loop down and restart it sixty times a second.
+  const you = useMemo(
+    () => playerLook(game.player.appearance, game.player.gender),
+    [game.player.appearance, game.player.gender],
+  );
 
   // Match the drawing surface to the space the layout gives it, so the map
   // fills a tall phone and a wide desktop equally well.
@@ -239,9 +216,14 @@ export function CityMapScreen({ game }: { game: GameState }) {
       dy += stick.current.dy;
 
       const length = Math.hypot(dx, dy);
-      if (length > 0) {
+      const walking = length > 0;
+      if (walking) {
         const move = (SPEED * delta) / (length > 1 ? length : 1);
         position.current = step(position.current, dx * move, dy * move);
+        facing.current = facingFrom(dx, dy, facing.current);
+        // Two strides a second at full tilt, tied to real time rather than
+        // frame count so the gait matches the speed on any refresh rate.
+        walkPhase.current = (walkPhase.current + delta * 2) % 1;
       }
 
       const canvas = canvasRef.current;
@@ -300,25 +282,44 @@ export function CityMapScreen({ game }: { game: GameState }) {
           // Who is in there tonight.
           state.inside.forEach((id, index) => {
             const character = getCharacter(id);
-            drawPerson(
+            const sway = reduced ? 0 : Math.sin(elapsed * 1.1 + index) * 0.5 + 0.5;
+            drawCharacter(
               ctx,
-              door.x + (index - (state.inside.length - 1) / 2) * 1.1,
-              door.y - 1.4,
-              character.palette.accent,
-              character.palette.hair,
-              0.85,
+              (door.x + (index - (state.inside.length - 1) / 2) * 1.2) * TILE,
+              (door.y - 1.1) * TILE,
+              characterLook(character),
+              { facing: 'down', phase: sway, moving: false, scale: 0.92 },
             );
           });
         }
 
-        for (const walker of CITY_WALKERS) {
-          const phase = reduced ? 0.5 : (Math.sin(elapsed * walker.speed * 0.5) + 1) / 2;
-          const wx = walker.from.x + (walker.to.x - walker.from.x) * phase;
-          const wy = walker.from.y + (walker.to.y - walker.from.y) * phase;
-          drawPerson(ctx, wx, wy, walker.colour, '#2b2438', 0.8);
-        }
+        CITY_WALKERS.forEach((walker, index) => {
+          const along = reduced ? 0.5 : (Math.sin(elapsed * walker.speed * 0.5) + 1) / 2;
+          const wx = walker.from.x + (walker.to.x - walker.from.x) * along;
+          const wy = walker.from.y + (walker.to.y - walker.from.y) * along;
+          // They turn around at the ends of their route, so their facing comes
+          // from which way the sine is currently carrying them.
+          const heading = Math.cos(elapsed * walker.speed * 0.5);
+          const toward = facingFrom(
+            (walker.to.x - walker.from.x) * heading,
+            (walker.to.y - walker.from.y) * heading,
+            'down',
+          );
+          drawCharacter(ctx, wx * TILE, wy * TILE, extraLook(index, walker.colour), {
+            facing: toward,
+            phase: reduced ? 0 : (elapsed * walker.speed * 0.9) % 1,
+            moving: !reduced,
+            scale: 0.86,
+          });
+        });
 
-        drawPerson(ctx, position.current.x, position.current.y, '#f5348c', playerHair, 1);
+        drawCharacter(ctx, position.current.x * TILE, position.current.y * TILE, you, {
+          facing: facing.current,
+          phase: walkPhase.current,
+          moving: walking,
+          scale: 1.06,
+          highlight: true,
+        });
       }
 
       frame = requestAnimationFrame(loop);
@@ -326,7 +327,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
 
     frame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frame);
-  }, [game, light, reduced, playerHair]);
+  }, [game, light, reduced, you]);
 
   // What the player is standing next to, polled gently rather than per frame.
   useEffect(() => {
