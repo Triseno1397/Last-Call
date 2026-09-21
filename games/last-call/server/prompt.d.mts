@@ -50,6 +50,14 @@ export const TOPIC_TAGS: readonly string[];
 
 export function buildSystemPrompt(character: PromptCharacter, rating?: ContentRating): string;
 export function buildSituation(situation: PromptSituation): string;
+export const JSON_CONTRACT: string;
+export function buildSampleTurns(
+  character: PromptCharacter,
+  situation: PromptSituation,
+  beats: readonly PromptBeat[],
+  playerSaid: string | null,
+  rating?: ContentRating,
+): PromptMessage[];
 export function buildMessages(
   situation: PromptSituation,
   beats: readonly PromptBeat[],

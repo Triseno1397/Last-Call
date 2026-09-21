@@ -3,6 +3,7 @@ import type { DialogueProvider } from '@/types/dialogue';
 import type { AiModel, FreeTextProvider } from '@/engine/dialogue/llmProvider';
 import { createScriptedDialogueProvider } from '@/engine/dialogue/scriptedProvider';
 import { createLlmDialogueProvider } from '@/engine/dialogue/llmProvider';
+import { sampleAvailable } from '@/engine/dialogue/transports';
 
 /**
  * Which voice is answering.
@@ -49,19 +50,41 @@ export function supportsFreeText(provider: DialogueProvider): provider is FreeTe
   return typeof provider.say === 'function';
 }
 
-/** Is the dialogue service up, and does it have a key? */
-export async function checkService(
-  endpoint = '/api/dialogue',
-): Promise<{ ok: boolean; hasKey: boolean; model?: string; reason?: string }> {
+export interface ServiceStatus {
+  ok: boolean;
+  hasKey: boolean;
+  /** True when the page can ask Claude directly — a published artifact. */
+  inPage: boolean;
+  model?: string;
+  reason?: string;
+}
+
+/**
+ * Can this page talk to Claude, and how? Either the page has its own runtime
+ * (published artifact: no key needed, billed to whoever is playing) or there is
+ * a local dialogue service holding a key.
+ */
+export async function checkService(endpoint = '/api/dialogue'): Promise<ServiceStatus> {
+  if (await sampleAvailable()) {
+    return { ok: true, hasKey: true, inPage: true };
+  }
   try {
     const response = await fetch(endpoint, { method: 'GET' });
-    if (!response.ok) return { ok: false, hasKey: false, reason: `Service returned ${response.status}` };
+    if (!response.ok) {
+      return { ok: false, hasKey: false, inPage: false, reason: `Service returned ${response.status}` };
+    }
     const body = (await response.json()) as { hasKey?: boolean; model?: string };
-    return { ok: true, hasKey: Boolean(body.hasKey), ...(body.model ? { model: body.model } : {}) };
+    return {
+      ok: true,
+      hasKey: Boolean(body.hasKey),
+      inPage: false,
+      ...(body.model ? { model: body.model } : {}),
+    };
   } catch (error) {
     return {
       ok: false,
       hasKey: false,
+      inPage: false,
       reason: error instanceof Error ? error.message : 'Service unreachable',
     };
   }

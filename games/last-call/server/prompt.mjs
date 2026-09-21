@@ -176,3 +176,37 @@ export function buildMessages(situation, beats, playerSaid) {
 
   return messages;
 }
+
+/**
+ * The JSON contract, spelled out for callers that cannot use the API's
+ * structured-output parameter — the published-artifact path, where the page
+ * asks Claude through the viewer's own account.
+ */
+export const JSON_CONTRACT = `REPLY FORMAT
+Reply with only a JSON object, no prose around it, exactly these fields:
+{
+  "line": "what she says, one to three sentences, in her voice",
+  "cue": "one short sentence of body language",
+  "expression": "one of: ${EXPRESSIONS.join(' | ')}",
+  "interestDelta": 0,
+  "comfortDelta": 0,
+  "tags": ["what his last line was, from: ${TOPIC_TAGS.join(' | ')}"],
+  "dealbroken": false,
+  "learnedFactIds": ["ids of facts she just revealed, from the list above"],
+  "outcome": "one of: none | number | date_planned | friendly | rejected | she_left | you_left",
+  "suggestions": [{"type": "one of: ${RESPONSE_TYPES.join(' | ')}", "text": "a reply he could say next"}]
+}
+interestDelta and comfortDelta are numbers from -12 to 12. Give three suggestions.`;
+
+/**
+ * The same conversation as `buildMessages`, shaped for a turn-based sampler
+ * with no system role: the standing instructions ride in a leading user turn.
+ */
+export function buildSampleTurns(character, situation, beats, playerSaid, rating) {
+  const instructions = `${buildSystemPrompt(character, rating)}\n\n${JSON_CONTRACT}`;
+  const turns = [{ role: 'user', content: instructions }];
+  for (const message of buildMessages(situation, beats, playerSaid)) {
+    turns.push(message);
+  }
+  return turns;
+}

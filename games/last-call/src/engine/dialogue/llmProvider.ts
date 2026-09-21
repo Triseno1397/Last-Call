@@ -11,6 +11,8 @@ import type {
 import { EXPRESSIONS, RESPONSE_TYPES, TOPIC_TAGS } from '@/content/ids';
 import { BALANCE } from '@/config/gameConfig';
 import { scoreOption } from '@/engine/dialogue/scoring';
+import type { DialogueTransport } from '@/engine/dialogue/transports';
+import { TransportError, resolveTransport } from '@/engine/dialogue/transports';
 
 /**
  * AI dialogue: the player types whatever he likes and she answers in character.
@@ -35,6 +37,8 @@ export interface LlmProviderConfig {
   timeoutMs: number;
   /** Set only in bring-your-own-key mode; never written to the save file. */
   apiKey?: string | null;
+  /** Overridden in tests; resolved from the environment otherwise. */
+  transport?: DialogueTransport;
 }
 
 export const DEFAULT_LLM_CONFIG: LlmProviderConfig = {
@@ -268,52 +272,29 @@ export function sanitiseTurn(
   };
 }
 
-async function callService(
+async function requestTurn(
+  transport: DialogueTransport,
   config: LlmProviderConfig,
-  payload: Record<string, unknown>,
+  payload: Omit<Parameters<DialogueTransport['request']>[0], 'model'>,
 ): Promise<RawTurn> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), config.timeoutMs);
 
   try {
-    const response = await fetch(config.endpoint, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        ...(config.apiKey ? { 'x-dialogue-key': config.apiKey } : {}),
-      },
-      body: JSON.stringify({ ...payload, model: config.model }),
-      signal: controller.signal,
-    });
-
-    const text = await response.text();
-    let body: unknown;
-    try {
-      body = JSON.parse(text);
-    } catch {
-      throw new DialogueServiceError('The dialogue service replied with something unreadable.', response.status);
-    }
-
-    if (!response.ok) {
-      const message =
-        typeof body === 'object' && body !== null && 'error' in body
-          ? String((body as { error: unknown }).error)
-          : `Dialogue service error ${response.status}`;
-      throw new DialogueServiceError(message, response.status);
-    }
-
-    const turn = (body as { turn?: RawTurn }).turn;
+    const raw = await transport.request({ ...payload, model: config.model }, controller.signal);
+    const turn = raw as RawTurn | undefined;
     if (!turn || typeof turn.line !== 'string') {
-      throw new DialogueServiceError('The dialogue service returned no reply.', 502);
+      throw new DialogueServiceError('She did not answer in a way the game could read.', 502);
     }
     return turn;
   } catch (error) {
     if (error instanceof DialogueServiceError) throw error;
+    if (error instanceof TransportError) throw new DialogueServiceError(error.message, 0);
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new DialogueServiceError('She took too long to answer. (Request timed out.)', 408);
     }
     throw new DialogueServiceError(
-      error instanceof Error ? error.message : 'Could not reach the dialogue service.',
+      error instanceof Error ? error.message : 'Could not reach Claude.',
       0,
     );
   } finally {
@@ -331,15 +312,25 @@ export function createLlmDialogueProvider(
 ): FreeTextProvider {
   const config: LlmProviderConfig = { ...DEFAULT_LLM_CONFIG, ...overrides };
 
+  // Resolved once: the page's own Claude runtime when there is one (a
+  // published artifact), the local dialogue service otherwise.
+  let transportPromise: Promise<DialogueTransport> | null = null;
+  const transportFor = (): Promise<DialogueTransport> => {
+    if (config.transport) return Promise.resolve(config.transport);
+    transportPromise ??= resolveTransport(config.endpoint, config.apiKey);
+    return transportPromise;
+  };
+
   const turnFor = async (
     context: EncounterContext,
     progress: EncounterProgress | null,
     playerSaid: string | null,
   ): Promise<ProviderTurn> => {
-    const raw = await callService(config, {
+    const transport = await transportFor();
+    const raw = await requestTurn(transport, config, {
       character: characterPayload(context.character),
       situation: situationPayload(context, progress),
-      beats: progress?.beats ?? [],
+      beats: (progress?.beats ?? []).map((beat) => ({ speaker: beat.speaker, text: beat.text })),
       playerSaid,
       contentRating: context.contentRating,
     });

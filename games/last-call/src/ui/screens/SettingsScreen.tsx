@@ -53,7 +53,12 @@ export function SettingsScreen({ game }: { game: GameState }) {
   const { settings, player } = game;
   const tipsSeen = TIP_ORDER.filter((id) => player.flags[`tip_${id}`]).length;
 
-  const [service, setService] = useState<{ ok: boolean; hasKey: boolean; reason?: string } | null>(null);
+  const [service, setService] = useState<{
+    ok: boolean;
+    hasKey: boolean;
+    inPage: boolean;
+    reason?: string;
+  } | null>(null);
   const [key, setKey] = useState(() => readStoredKey() ?? '');
   const [keySaved, setKeySaved] = useState(false);
 
@@ -148,7 +153,12 @@ export function SettingsScreen({ game }: { game: GameState }) {
 
             <p className="text-xs">
               {service === null ? (
-                <span className="text-ink-600">Checking the dialogue service...</span>
+                <span className="text-ink-600">Checking whether she can answer...</span>
+              ) : service.inPage ? (
+                <span className="text-lime-400">
+                  Claude is available in this page — no key needed. Conversations run on your own
+                  Claude account, and it will ask you the first time.
+                </span>
               ) : service.ok && service.hasKey ? (
                 <span className="text-lime-400">Dialogue service running with a key. Ready.</span>
               ) : service.ok ? (
@@ -164,7 +174,7 @@ export function SettingsScreen({ game }: { game: GameState }) {
               )}
             </p>
 
-            <div className="flex flex-col gap-2">
+            <div className={`flex flex-col gap-2 ${service?.inPage ? 'hidden' : ''}`}>
               <label className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-ink-500">
                 Your own API key (optional)
               </label>

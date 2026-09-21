@@ -6,6 +6,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { dialoguePlugin } from './server/dialogueMiddleware.mjs';
 
 export default defineConfig({
+  base: './',
   plugins: [react(), tailwindcss(), dialoguePlugin()],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
