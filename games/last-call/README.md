@@ -31,6 +31,22 @@ npm run typecheck
 npm run build
 ```
 
+### Playing it without a server
+
+```bash
+npm run build:standalone   # -> dist-standalone/last-call.html
+```
+
+One file, everything inlined, openable straight from disk — double-click it, or
+drag it into a browser tab. Saves and imported portraits go to that browser's
+`localStorage`, keyed `last-call:save`.
+
+The standalone build compiles to a classic `iife` script rather than an ES
+module, because browsers refuse to load modules from a `file://` origin. The
+platform AI transport is not there off-platform either, so conversations run the
+scripted dialogue trees; for free-text conversation use `npm run dev` with a key
+(see [The conversation system](#the-conversation-system)) or the hosted build.
+
 ## Where things are
 
 | Path | What lives there |

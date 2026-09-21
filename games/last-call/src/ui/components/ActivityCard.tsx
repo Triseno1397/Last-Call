@@ -11,9 +11,11 @@ export function ActivityCard({ preview, onPick }: ActivityCardProps) {
   const locked = !availability.ok;
 
   return (
+    // Not `disabled`, and not `aria-disabled` either: a locked card is still a
+    // working control — tapping it says what you would need, or what night the
+    // place opens. The lock chips carry the state.
     <button
       onClick={onPick}
-      aria-disabled={locked}
       className={`tap w-full rounded-2xl border p-4 text-left ${
         locked
           ? 'border-ink-600/15 bg-night-900/50 opacity-70'
