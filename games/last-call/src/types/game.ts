@@ -18,7 +18,9 @@ export type ScreenId =
   | 'phone'
   | 'thread'
   | 'date'
-  | 'settings';
+  | 'settings'
+  | 'artImport'
+  | 'city_map';
 
 export type LogTone = 'neutral' | 'good' | 'bad' | 'flavour' | 'milestone';
 

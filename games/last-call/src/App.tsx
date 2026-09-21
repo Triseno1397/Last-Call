@@ -12,6 +12,8 @@ import { GalleryScreen } from '@/ui/screens/GalleryScreen';
 import { PhoneScreen } from '@/ui/screens/PhoneScreen';
 import { ThreadScreen } from '@/ui/screens/ThreadScreen';
 import { SettingsScreen } from '@/ui/screens/SettingsScreen';
+import { ArtImportScreen } from '@/ui/screens/ArtImportScreen';
+import { CityMapScreen } from '@/ui/screens/CityMapScreen';
 
 export function App(): ReactElement {
   const screen = useGameStore((store) => store.screen);
@@ -20,10 +22,17 @@ export function App(): ReactElement {
   const encounter = useGameStore((store) => store.encounter);
   const openThreadId = useGameStore((store) => store.openThreadId);
 
+  const loadArt = useGameStore((store) => store.loadArt);
+
   // A new screen always starts at the top, however far down the last one was.
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [screen]);
+
+  // Imported art, once, as soon as the runtime can answer.
+  useEffect(() => {
+    void loadArt();
+  }, [loadArt]);
 
   const body = (): ReactElement => {
     if (screen === 'creation') return <CreationScreen />;
@@ -52,6 +61,10 @@ export function App(): ReactElement {
         return <GalleryScreen game={game} />;
       case 'settings':
         return <SettingsScreen game={game} />;
+      case 'artImport':
+        return <ArtImportScreen />;
+      case 'city_map':
+        return <CityMapScreen game={game} />;
       case 'city':
         return <CityScreen game={game} />;
       default:

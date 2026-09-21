@@ -49,7 +49,7 @@ const MODEL_LABELS: Record<string, string> = {
 };
 
 export function SettingsScreen({ game }: { game: GameState }) {
-  const { updateSettings, resetTips, acknowledgeDay } = useGameStore();
+  const { updateSettings, resetTips, acknowledgeDay, openArtImport } = useGameStore();
   const { settings, player } = game;
   const tipsSeen = TIP_ORDER.filter((id) => player.flags[`tip_${id}`]).length;
 
@@ -226,6 +226,19 @@ export function SettingsScreen({ game }: { game: GameState }) {
           Rating: {CONTENT_RATING}. Romance is suggestive and fades to black. Every character in the
           game is 21 or older.
         </p>
+      </section>
+
+      <section className="panel p-4">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-[0.16em] text-ink-500">
+          Art
+        </h2>
+        <p className="mt-2 text-sm text-ink-300">
+          The characters ship with placeholder portraits. Import real art and it replaces them
+          everywhere.
+        </p>
+        <Button variant="ghost" className="mt-3 w-full" onClick={openArtImport}>
+          Import art
+        </Button>
       </section>
 
       <div className="safe-bottom mt-auto flex flex-col gap-2 pt-2">

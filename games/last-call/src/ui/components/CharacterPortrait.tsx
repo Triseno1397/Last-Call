@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { Expression } from '@/content/ids';
 import type { CharacterDef, OutfitDef } from '@/types/character';
+import { portraitSource } from '@/engine/artStore';
+import { useGameStore } from '@/state/gameStore';
 
 /**
  * Layered portrait.
@@ -88,11 +90,32 @@ export function CharacterPortrait({
   width = 200,
   className = '',
 }: PortraitProps) {
+  const artMap = useGameStore((store) => store.artMap);
+  const imported = portraitSource(artMap, character.id, expression);
+  const [importedBroken, setImportedBroken] = useState(false);
   const art = useArtAvailability(character.id);
   const height = Math.round((width * 3) / 2);
   const look = EYES[expression];
   const worn = outfit ?? character.outfits[0];
   const palette = character.palette;
+
+  // Art the player imported into this build wins: it is the most specific
+  // thing anyone has said about how she looks.
+  if (imported && !importedBroken) {
+    return (
+      <div
+        className={`relative overflow-hidden rounded-2xl ${className}`}
+        style={{ width, height, background: palette.background }}
+      >
+        <img
+          src={imported}
+          alt={`${character.name}, looking ${expression}`}
+          className="absolute inset-0 h-full w-full object-cover object-top"
+          onError={() => setImportedBroken(true)}
+        />
+      </div>
+    );
+  }
 
   if (art === 'art') {
     return (

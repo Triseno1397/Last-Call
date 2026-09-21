@@ -32,6 +32,7 @@ export function CityScreen({ game }: { game: GameState }) {
     openGallery,
     openSettings,
     openPhone,
+    openCity,
     startDate,
   } = useGameStore();
   const dueDate = dateDueNow(game);
@@ -100,6 +101,18 @@ export function CityScreen({ game }: { game: GameState }) {
       {tab === 'day' && (
         <div className="flex flex-col gap-6">
           <TipCard id="city" />
+          <button
+            onClick={openCity}
+            className="tap rounded-2xl border border-glow-400/50 bg-glow-500/10 p-4 text-left"
+          >
+            <p className="font-display text-xs uppercase tracking-[0.2em] text-glow-400">Outside</p>
+            <h3 className="font-display text-lg font-semibold">Walk the block</h3>
+            <p className="text-sm text-ink-300">
+              Wander the street, see which doors are open and who is out tonight. Costs nothing until
+              you go in somewhere.
+            </p>
+          </button>
+
           {dueDate && (
             <button
               onClick={() => void startDate()}

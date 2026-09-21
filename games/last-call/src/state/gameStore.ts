@@ -20,6 +20,8 @@ import { WINGMAN_ASSIST_BONUS, assistLine, tipFor } from '@/engine/wingman';
 import { dartsBonus, dartsVerdict } from '@/engine/darts';
 import { PLAYER_EXITS } from '@/content/encounterCopy';
 import { clearSave, hasSave, loadFromStorage, saveToStorage } from '@/engine/save';
+import type { ArtMap, ArtSlot } from '@/engine/artStore';
+import { canImportArt, importPortrait, loadArtMap } from '@/engine/artStore';
 import { playCue, setMuted } from '@/engine/audio';
 
 export interface VenueVisit {
@@ -46,6 +48,10 @@ export interface GameStore {
   openThreadId: string | null;
   saveExists: boolean;
   notice: string | null;
+  /** Imported portraits, by character and expression. */
+  artMap: ArtMap;
+  /** True when this view can import art (a published build, as its owner). */
+  artImportable: boolean;
 
   goToTitle: () => void;
   startCreation: () => void;
@@ -69,6 +75,14 @@ export interface GameStore {
   endEncounter: () => void;
   closeEncounterSummary: () => void;
   openGallery: () => void;
+  /** Step outside onto the block. Walking around costs nothing. */
+  openCity: () => void;
+  closeCity: () => void;
+  /** Walk in through a venue door; this is where the slot gets spent. */
+  enterVenueFromMap: (venue: VenueId) => void;
+  openArtImport: () => void;
+  loadArt: () => Promise<void>;
+  importArt: (slot: ArtSlot, file: Blob) => Promise<void>;
   openSettings: () => void;
   dismissTip: (id: string) => void;
   resetTips: () => void;
@@ -111,6 +125,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   openThreadId: null,
   saveExists: hasSave(),
   notice: null,
+  artMap: {},
+  artImportable: false,
 
   goToTitle: () =>
     set({ screen: 'title', notice: null, saveExists: hasSave(), visit: null, encounter: null }),
@@ -395,6 +411,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
   openGallery: () => set({ screen: 'gallery' }),
 
   openSettings: () => set({ screen: 'settings' }),
+
+  openArtImport: () => set({ screen: 'artImport' }),
+
+  openCity: () => set({ screen: 'city_map', notice: null }),
+
+  closeCity: () => set({ screen: 'city' }),
+
+  enterVenueFromMap: (venue) => {
+    get().doActivity(`go_out_${venue}` as ActivityId);
+  },
+
+  /** Read the imported art once at start-up; absent runtimes resolve empty. */
+  loadArt: async () => {
+    const [artMap, artImportable] = await Promise.all([loadArtMap(), canImportArt()]);
+    set({ artMap, artImportable });
+  },
+
+  importArt: async (slot, file) => {
+    const { artMap } = get();
+    try {
+      const result = await importPortrait(slot, file, artMap);
+      set({ artMap: result.map, notice: null });
+    } catch (error) {
+      set({ notice: error instanceof Error ? error.message : 'That image would not import.' });
+    }
+  },
 
   dismissTip: (id) => {
     const { game } = get();
