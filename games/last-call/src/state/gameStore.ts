@@ -5,6 +5,7 @@ import type { EncounterState } from '@/types/dialogue';
 import type { GameSettings, GameState, ScreenId } from '@/types/game';
 import type { CreationChoices } from '@/engine/newGame';
 import { createNewGame } from '@/engine/newGame';
+import { randomCreation } from '@/engine/quickStart';
 import { createRng, randomSeed } from '@/engine/rng';
 import { getActivity } from '@/content/activities';
 import { VENUES } from '@/content/venues';
@@ -55,6 +56,8 @@ export interface GameStore {
 
   goToTitle: () => void;
   startCreation: () => void;
+  /** Roll a character and drop straight onto the street. */
+  quickPlay: () => void;
   beginGame: (choices: CreationChoices) => void;
   continueGame: () => void;
   deleteSave: () => void;
@@ -133,9 +136,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   startCreation: () => set({ screen: 'creation', notice: null }),
 
+  // Straight onto the street with a rolled character. The creation screen is
+  // still there for anyone who wants it; it is no longer the way in.
+  quickPlay: () => {
+    const game = createNewGame(randomCreation(), randomSeed());
+    set({ game: commit(game), screen: 'city_map', saveExists: true, notice: null, visit: null });
+  },
+
   beginGame: (choices) => {
     const game = createNewGame(choices, randomSeed());
-    set({ game: commit(game), screen: 'city', saveExists: true, notice: null, visit: null });
+    set({ game: commit(game), screen: 'city_map', saveExists: true, notice: null, visit: null });
   },
 
   continueGame: () => {
@@ -151,7 +161,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     setMuted(!result.state.settings.sound);
     set({
       game: result.state,
-      screen: 'city',
+      screen: 'city_map',
       saveExists: true,
       visit: null,
       encounter: null,
@@ -221,14 +231,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
   },
 
-  acknowledgeDay: () => set({ screen: 'city' }),
-  acknowledgeWeek: () => set({ screen: 'city' }),
+  acknowledgeDay: () => set({ screen: 'city_map' }),
+  acknowledgeWeek: () => set({ screen: 'city_map' }),
 
   /** Leaving the venue is what actually spends the slot. */
   leaveVenue: () => {
     const { game, visit } = get();
     if (!game || !visit) {
-      set({ screen: 'city', visit: null });
+      set({ screen: 'city_map', visit: null });
       return;
     }
     const rng = createRng(game.rngSeed, game.rngCursor);

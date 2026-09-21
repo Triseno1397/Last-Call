@@ -3,7 +3,8 @@ import { Button } from '@/ui/components/Button';
 import { CONTENT_RATING } from '@/config/gameConfig';
 
 export function TitleScreen() {
-  const { saveExists, notice, startCreation, continueGame, deleteSave, dismissNotice } = useGameStore();
+  const { saveExists, notice, quickPlay, startCreation, continueGame, deleteSave, dismissNotice } =
+    useGameStore();
 
   return (
     <main className="flex min-h-[100dvh] flex-col justify-between py-10">
@@ -15,8 +16,8 @@ export function TitleScreen() {
           CALL
         </h1>
         <p className="mt-5 max-w-sm text-sm leading-relaxed text-ink-300">
-          One city, one week at a time. Work, get interesting, go out, and try to say something
-          worth remembering before the lights come up.
+          One city, one week at a time. Walk the block, get interesting, go out, and try to say
+          something worth remembering before the lights come up.
         </p>
       </div>
 
@@ -30,12 +31,18 @@ export function TitleScreen() {
             <span className="ml-2 text-ink-600">(tap to dismiss)</span>
           </button>
         )}
-        <Button variant="primary" onClick={startCreation}>
-          New game
+        <Button variant="primary" onClick={quickPlay}>
+          Play
         </Button>
         <Button variant="ghost" onClick={continueGame} disabled={!saveExists}>
           {saveExists ? 'Continue' : 'No save on this device'}
         </Button>
+        <button
+          onClick={startCreation}
+          className="tap py-1 text-center text-xs text-ink-500 underline decoration-ink-600 underline-offset-4"
+        >
+          Rather build your own character?
+        </button>
         {saveExists && (
           <Button variant="danger" onClick={deleteSave}>
             Delete save

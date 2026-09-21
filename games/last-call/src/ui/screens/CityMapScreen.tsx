@@ -12,12 +12,14 @@ import {
   TILE,
 } from '@/content/city';
 import { getCharacter } from '@/content/characters';
-import { DAY_LABELS, SLOT_LABELS, currentDay, currentSlot } from '@/engine/calendar';
+import { DAY_LABELS, SLOT_LABELS, currentDay, currentSlot, slotsRemainingToday } from '@/engine/calendar';
+import { energyReadout } from '@/state/selectors';
 import { doorNear, doorState, lightLevel, step } from '@/engine/city';
 import { useGameStore } from '@/state/gameStore';
 import { characterLook, extraLook, playerLook } from '@/ui/art/looks';
 import { drawCharacter, facingFrom, type Facing } from '@/ui/art/sprite';
 import { Button } from '@/ui/components/Button';
+import { Meter } from '@/ui/components/Meter';
 
 const WIDTH = CITY_WIDTH * TILE;
 const HEIGHT = CITY_HEIGHT * TILE;
@@ -130,6 +132,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
   const walkPhase = useRef(0);
   const [near, setNear] = useState<CityDoor | null>(null);
 
+  const energy = energyReadout(game);
   const light = lightLevel(game);
   const reduced = game.settings.reducedMotion;
   // Memoised: the frame loop lists it as a dependency, and a fresh object each
@@ -346,16 +349,28 @@ export function CityMapScreen({ game }: { game: GameState }) {
 
   return (
     <main className="flex min-h-[100dvh] flex-col gap-3 py-4">
-      <header className="flex items-baseline justify-between">
+      <header className="flex items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold leading-tight">The block</h1>
           <p className="text-xs text-ink-500">
-            {DAY_LABELS[currentDay(game.clock)]} · {SLOT_LABELS[currentSlot(game.clock)].toLowerCase()}
+            Week {game.clock.week} · {DAY_LABELS[currentDay(game.clock)]} ·{' '}
+            {SLOT_LABELS[currentSlot(game.clock)].toLowerCase()} · {slotsRemainingToday(game.clock)} slot
+            {slotsRemainingToday(game.clock) === 1 ? '' : 's'} left
           </p>
         </div>
-        <Button variant="quiet" onClick={closeCity}>
-          Back inside
-        </Button>
+        <div className="shrink-0 text-right">
+          <p className="font-display text-lg leading-none text-gold-400">${game.player.money}</p>
+          <div className="mt-1.5 w-24">
+            <Meter
+              value={energy.current}
+              max={energy.max}
+              tone={energy.current < 25 ? 'bg-alarm-400' : 'bg-glow-500'}
+              label="Energy"
+              trailing={`${energy.current}`}
+              compact
+            />
+          </div>
+        </div>
       </header>
 
       <div ref={frameRef} className="panel min-h-[42vh] flex-1 overflow-hidden rounded-2xl">
@@ -415,13 +430,18 @@ export function CityMapScreen({ game }: { game: GameState }) {
           )}
         </div>
 
-        <button
-          onClick={interact}
-          disabled={!near}
-          className="tap h-16 w-16 rounded-full border border-neon-400 bg-neon-500/90 text-xs font-bold text-night-950 disabled:border-night-600 disabled:bg-night-700 disabled:text-ink-600"
-        >
-          {near?.venue ? 'ENTER' : 'LOOK'}
-        </button>
+        <div className="flex flex-col items-end gap-2">
+          <Button variant="quiet" onClick={closeCity}>
+            Things to do
+          </Button>
+          <button
+            onClick={interact}
+            disabled={!near}
+            className="tap h-16 w-16 rounded-full border border-neon-400 bg-neon-500/90 text-xs font-bold text-night-950 disabled:border-night-600 disabled:bg-night-700 disabled:text-ink-600"
+          >
+            {near?.venue ? 'ENTER' : 'LOOK'}
+          </button>
+        </div>
       </div>
     </main>
   );
