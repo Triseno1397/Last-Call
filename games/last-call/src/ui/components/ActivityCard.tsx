@@ -13,7 +13,7 @@ export function ActivityCard({ preview, onPick }: ActivityCardProps) {
   return (
     <button
       onClick={onPick}
-      disabled={locked}
+      aria-disabled={locked}
       className={`tap w-full rounded-2xl border p-4 text-left ${
         locked
           ? 'border-ink-600/15 bg-night-900/50 opacity-70'

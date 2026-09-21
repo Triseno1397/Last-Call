@@ -12,7 +12,7 @@ export const TIPS: Readonly<Record<string, OnboardingTip>> = {
   city: {
     id: 'city',
     title: 'Three slots a day',
-    body: "Morning, afternoon, evening. Everything costs a slot and most things cost energy. Locked cards tell you what you would need — treat them as a to-do list, not a wall.",
+    body: "Tap one of the cards below to spend this slot — that is how the day moves. Morning, afternoon, evening, then the next day. Greyed-out cards still tap: they tell you what you would need, or what night that place opens.",
   },
   venue: {
     id: 'venue',
