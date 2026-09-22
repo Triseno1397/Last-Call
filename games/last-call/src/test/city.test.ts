@@ -130,7 +130,10 @@ describe('people on the street', () => {
     expect(bar).toBeDefined();
     const sable = peopleOnStreet(at(3, 2)).find((person) => person.characterId === 'sable');
     expect(sable).toBeDefined();
-    expect(Math.abs(sable!.x - bar!.x)).toBeLessThan(2);
+    // Beside the door, not on it: the threshold has to stay clear or the door
+    // loses every proximity check to the person standing in it.
+    expect(Math.abs(sable!.x - bar!.x)).toBeGreaterThan(1);
+    expect(Math.abs(sable!.x - bar!.x)).toBeLessThan(4);
     expect(Math.abs(sable!.y - bar!.y)).toBeLessThan(2);
   });
 

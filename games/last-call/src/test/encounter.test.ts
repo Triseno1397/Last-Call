@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '@/types/game';
-import { beginEncounter, buildContext, chooseOption, concludeEncounter } from '@/engine/encounter';
+import {
+  beginEncounter,
+  buildContext,
+  chooseOption,
+  concludeEncounter,
+  sayToHer,
+} from '@/engine/encounter';
 import { createScriptedDialogueProvider, selectLine } from '@/engine/dialogue/scriptedProvider';
 import { SABLE } from '@/content/characters/sable';
 import { decayInterest, emptyMemory, moodBand, moodValueFor, nextStage } from '@/engine/characters';
@@ -241,5 +247,73 @@ describe('relationship stages', () => {
       outcomes: [friendly, friendly, friendly],
     };
     expect(nextStage(memory, 'friendly', 30)).toBe('friend');
+  });
+});
+
+describe('how long she stays', () => {
+  /**
+   * A provider that answers forever with a neutral line, so the only thing that
+   * can end the conversation is the engine's own patience rule.
+   */
+  function endlessProvider(id: string, freeText: boolean) {
+    const turn = (cursorTurn: number) => ({
+      cursor: { node: 'hub', turn: cursorTurn, repeats: {} },
+      line: 'Go on then.',
+      cue: null,
+      expression: 'neutral' as const,
+      options: [],
+      interestDelta: 0,
+      comfortDelta: 0,
+      learned: [],
+      told: [],
+      topics: [],
+      outcome: null,
+      notes: [],
+      dealbroken: false,
+    });
+    const base = {
+      id,
+      async open() {
+        return turn(1);
+      },
+      async respond(_c: unknown, progress: { cursor: { turn: number } }) {
+        return turn(progress.cursor.turn + 1);
+      },
+    };
+    return freeText
+      ? {
+          ...base,
+          async say(_c: unknown, progress: { cursor: { turn: number } }) {
+            return turn(progress.cursor.turn + 1);
+          },
+        }
+      : base;
+  }
+
+  it('records which provider actually ran, not a hardcoded one', async () => {
+    const provider = endlessProvider('ai', true);
+    const encounter = await beginEncounter(atTheBar(), 'sable', 'neon_last_call', 0, provider as never);
+    expect(encounter.providerId).toBe('ai');
+  });
+
+  it('gives a typed conversation a far longer leash than a scripted one', async () => {
+    // Same provider both times; only its id differs. That isolates the rule
+    // under test from every other difference between the two paths.
+    const run = async (id: string) => {
+      const game = atTheBar();
+      const provider = endlessProvider(id, true) as never;
+      let encounter = await beginEncounter(game, 'sable', 'neon_last_call', 0, provider);
+      let turns = 0;
+      while (!encounter.outcome && turns < 400) {
+        encounter = await sayToHer(game, encounter, 'Something of my own.', provider);
+        turns += 1;
+      }
+      return turns;
+    };
+
+    const scripted = await run('scripted');
+    const free = await run('ai');
+    expect(scripted).toBeLessThanOrEqual(SABLE.patience + 1);
+    expect(free).toBeGreaterThan(scripted * 2);
   });
 });

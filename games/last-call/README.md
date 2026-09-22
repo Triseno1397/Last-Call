@@ -84,6 +84,20 @@ scripted dialogue trees; for free-text conversation use `npm run dev` with a key
   hooks wired at every moment that should make a noise, first-run coaching, and
   a balance pass driven by a simulation of a sensible player.
 
+## Walking indoors
+
+Doors lead into rooms you walk around, not menus. `src/content/interiors.ts`
+holds each venue as data — floors, furniture, and the stations the regulars
+stand at — and `src/engine/interior.ts` turns that into collision, placement
+and the way out. `src/ui/art/room.ts` paints it in the same cel-shaded
+treatment as the street, so going inside does not look like changing games.
+
+One screen renders both worlds. `CityMapScreen` reads whichever world it is
+in — the block or a room — and the camera, collision and people all follow from
+that, which is why a conversation works identically on a pavement and at a
+squat rack. A room smaller than the viewport is centred rather than pinned to a
+corner, or there is no sky above anyone's head for a speech bubble.
+
 ## Talking in the street
 
 Conversations happen on the map, not on a screen of their own. Walk up to
@@ -106,6 +120,28 @@ costs the same slot a night out does, charged when it closes.
 New games start in AI mode wherever the page can reach Claude on its own — a
 published artifact can, with no key and nothing to configure. Everywhere else
 they start scripted and Settings switches them.
+
+A typed conversation gets `BALANCE.conversation.freeTextPatience` times her
+usual patience. The authored trees are written to land in eight or nine beats,
+so that number is right for them; a conversation you are improvising has no
+script to run out of, and cutting it off mid-thought is the fastest way to make
+an open-ended conversation feel like a menu after all. Comfort ends it instead.
+
+### What you can read off her
+
+While you talk, a panel floats over her head with interest, comfort and her
+mood. Social awareness decides how much of it is legible — dashes at first, a
+word, then segments, then numbers — so the panel is always present and what
+changes is your ability to read it.
+
+### Strangers
+
+Everyone on the block can be spoken to, not just the three. Passers-by come
+from `src/content/strangers.ts`: a name, a one-line persona and a few authored
+lines. `src/engine/smallTalk.ts` runs them through a deliberately thin path —
+no meters, no memory, no outcome — because a passer-by is a conversation, not a
+relationship. Whoever you stop stays stopped until you are done; a walker who
+keeps pacing walks out from under their own speech bubble.
 
 ## The conversation system
 

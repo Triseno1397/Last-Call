@@ -13,6 +13,10 @@ import { performActivity, skipSlot } from '@/engine/activities';
 import { advanceSlots, appendLog, makeLogEntry } from '@/engine/calendar';
 import type { StreetPerson as StreetTalk } from '@/engine/city';
 import { CITY_SPAWN } from '@/content/city';
+import { interiorFor } from '@/engine/interior';
+import type { SmallTalkState } from '@/engine/smallTalk';
+import { openSmallTalk, saySmallTalk } from '@/engine/smallTalk';
+import { strangerFor } from '@/content/strangers';
 import type { DialogueProvider } from '@/types/dialogue';
 import { beginEncounter, chooseOption, concludeEncounter, sayToHer } from '@/engine/encounter';
 import { checkService, providerFor, scriptedProvider, supportsFreeText } from '@/engine/dialogue/providers';
@@ -59,6 +63,16 @@ export interface GameStore {
    */
   cityPosition: { x: number; y: number };
   /**
+   * The venue you are standing inside, or null out on the street. Walking in
+   * swaps the world the map screen renders rather than changing screen, so the
+   * game never cuts away from itself.
+   */
+  interior: VenueId | null;
+  /** Chatting to a passer-by: no meters, no memory, just a person. */
+  smallTalk: (SmallTalkState & { walkerIndex: number }) | null;
+  /** Where you are standing in that room. */
+  interiorPosition: { x: number; y: number };
+  /**
    * True when this page can reach Claude on its own — a published artifact,
    * where conversation costs the player nothing and needs no key. New games
    * start in AI mode when it is, because free-text conversation is the point
@@ -96,6 +110,15 @@ export interface GameStore {
   setCityPosition: (at: { x: number; y: number }) => void;
   /** Ask the page whether it can run AI dialogue, once, at startup. */
   detectAi: () => Promise<void>;
+  /** Remember where the player stopped walking inside a room. */
+  setInteriorPosition: (at: { x: number; y: number }) => void;
+  /** Walk back out to the street; this is where the slot gets spent. */
+  leaveInterior: () => void;
+  /** Strike up a conversation with a passer-by. */
+  talkToStranger: (walkerIndex: number) => void;
+  /** Say something to them. Free text always; they are not a scored encounter. */
+  saySmall: (text: string) => Promise<void>;
+  endSmallTalk: () => void;
   pickOption: (optionId: string) => Promise<void>;
   /** AI mode: the player typed something of his own. */
   sayTo: (text: string) => Promise<void>;
@@ -160,6 +183,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   encounter: null,
   streetTalk: null,
   cityPosition: { ...CITY_SPAWN },
+  interior: null,
+  interiorPosition: { x: 0, y: 0 },
+  smallTalk: null,
   aiReady: false,
   activeDate: null,
   openThreadId: null,
@@ -250,9 +276,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (goingOut && activity.venue) {
       playCue('venue_enter');
       const venue = VENUES[activity.venue];
+      const room = interiorFor(activity.venue);
       set({
         game: commit(next),
-        screen: 'venue',
+        // The map screen renders the room; the world changes, not the screen.
+        screen: 'city_map',
+        interior: activity.venue,
+        interiorPosition: { ...room.spawn },
         notice: null,
         visit: {
           venueId: activity.venue,
@@ -361,7 +391,54 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  talkToStranger: (walkerIndex) => {
+    const stranger = strangerFor(walkerIndex);
+    playCue('line_her');
+    set({
+      smallTalk: { ...openSmallTalk(stranger, walkerIndex + Date.now()), walkerIndex },
+      notice: null,
+    });
+  },
+
+  saySmall: async (text) => {
+    const { smallTalk } = get();
+    const trimmed = text.trim();
+    if (!smallTalk || smallTalk.busy || smallTalk.over || !trimmed) return;
+    set({ smallTalk: { ...smallTalk, busy: true } });
+    const stranger = strangerFor(smallTalk.walkerIndex);
+    const next = await saySmallTalk(stranger, smallTalk, trimmed, smallTalk.walkerIndex + smallTalk.turn);
+    playCue('line_her');
+    set({ smallTalk: { ...next, walkerIndex: smallTalk.walkerIndex } });
+  },
+
+  endSmallTalk: () => {
+    playCue('ui_back');
+    set({ smallTalk: null });
+  },
+
   setCityPosition: (at) => set({ cityPosition: at }),
+  setInteriorPosition: (at) => set({ interiorPosition: at }),
+
+  /** Leaving the room is what actually spends the slot, as leaving a venue did. */
+  leaveInterior: () => {
+    const { game, visit } = get();
+    if (!game || !visit) {
+      set({ interior: null, visit: null, screen: 'city_map' });
+      return;
+    }
+    const rng = createRng(game.rngSeed, game.rngCursor);
+    const advanced = advanceSlots(game, visit.pendingSlots, rng);
+    const next = appendLog(advanced.state, advanced.entries);
+    set({
+      game: commit(afterClock(next, advanced.dayRolled, rng)),
+      visit: null,
+      encounter: null,
+      streetTalk: null,
+      interior: null,
+      activeDate: null,
+      screen: advanced.weekRolled ? 'weekEnd' : advanced.dayRolled ? 'dayEnd' : 'city_map',
+    });
+  },
 
   detectAi: async () => {
     try {

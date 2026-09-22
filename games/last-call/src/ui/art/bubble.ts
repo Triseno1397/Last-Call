@@ -185,3 +185,119 @@ export function drawThinking(
   }
   ctx.restore();
 }
+
+/**
+ * The read on someone, floated over their head while you talk to them.
+ *
+ * Two bars — interest and comfort — plus how she is feeling right now. What it
+ * shows is gated by social awareness, the same as everywhere else: at the
+ * bottom it is a coloured aura and a word, and numbers only appear once you
+ * are good enough at reading people to have earned them. The panel is always
+ * there, so the mechanic reads as "learn to see more" rather than "the game is
+ * hiding things from you".
+ */
+export interface MeterPanel {
+  interestLabel: string | null;
+  interestSegments: number | null;
+  interestValue: number | null;
+  interestDelta: string | null;
+  comfortLabel: string | null;
+  comfortSegments: number | null;
+  comfortValue: number | null;
+  comfortDelta: string | null;
+  /** Her mood band, always legible — it is on her face anyway. */
+  mood: string;
+}
+
+const BAR_W = 42;
+const BAR_H = 3.4;
+
+function bar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  segments: number | null,
+  colour: string,
+): void {
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(x, y, BAR_W, BAR_H);
+  if (segments === null) {
+    // Awareness too low for a reading: a dashed rail, so the bar is visibly
+    // there but visibly unreadable.
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    for (let i = 0; i < 5; i += 1) ctx.fillRect(x + i * (BAR_W / 5) + 1, y, 2, BAR_H);
+    return;
+  }
+  const filled = Math.max(0, Math.min(5, segments));
+  ctx.fillStyle = colour;
+  ctx.fillRect(x, y, (BAR_W / 5) * filled, BAR_H);
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+  ctx.lineWidth = 0.6;
+  ctx.strokeRect(x + 0.3, y + 0.3, BAR_W - 0.6, BAR_H - 0.6);
+}
+
+/** Draw the panel with its bottom edge at `bottomY`, centred on `cx`. */
+export function drawMeterPanel(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  bottomY: number,
+  panel: MeterPanel,
+): number {
+  const w = 64;
+  const h = 32;
+  const x = cx - w / 2;
+  const y = bottomY - h;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(14, 10, 24, 0.92)';
+  roundedRect(ctx, x, y, w, h, 4);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 95, 168, 0.5)';
+  ctx.lineWidth = 0.8;
+  roundedRect(ctx, x, y, w, h, 4);
+  ctx.stroke();
+
+  ctx.font = '700 4.6px "DM Sans", system-ui, sans-serif';
+  ctx.textBaseline = 'top';
+
+  const row = (
+    top: number,
+    name: string,
+    label: string | null,
+    segments: number | null,
+    value: number | null,
+    delta: string | null,
+    colour: string,
+  ) => {
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(200, 192, 224, 0.85)';
+    ctx.fillText(name, x + 4, top);
+
+    ctx.textAlign = 'right';
+    if (value !== null) {
+      ctx.fillStyle = '#f2eefc';
+      ctx.fillText(String(value), x + w - 4, top);
+    } else if (label) {
+      ctx.fillStyle = 'rgba(232, 226, 246, 0.85)';
+      ctx.fillText(label.length > 16 ? `${label.slice(0, 15)}…` : label, x + w - 4, top);
+    }
+
+    bar(ctx, x + 4, top + 5.6, segments, colour);
+    if (delta) {
+      ctx.textAlign = 'left';
+      const rising = delta === 'up' || delta.startsWith('+');
+      ctx.fillStyle = rising ? '#5fe3a1' : '#ff7a7a';
+      ctx.fillText(delta === 'up' ? '\u25b2' : delta === 'down' ? '\u25bc' : delta, x + 4 + BAR_W + 2, top + 4.8);
+    }
+  };
+
+  row(y + 3, 'INT', panel.interestLabel, panel.interestSegments, panel.interestValue, panel.interestDelta, '#ff5fa8');
+  row(y + 15, 'CMF', panel.comfortLabel, panel.comfortSegments, panel.comfortValue, panel.comfortDelta, '#4fd6ff');
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(168, 160, 196, 0.9)';
+  ctx.fillText(panel.mood, cx, y + h - 6);
+
+  ctx.restore();
+  return h;
+}

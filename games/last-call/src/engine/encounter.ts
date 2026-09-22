@@ -11,6 +11,7 @@ import type {
 import { getCharacter } from '@/content/characters';
 import { VENUES } from '@/content/venues';
 import { FORCED_ENDINGS, OUTCOME_LINES, OUTCOME_TONE } from '@/content/encounterCopy';
+import { BALANCE } from '@/config/gameConfig';
 import { scriptedProvider } from '@/engine/dialogue/providers';
 import { TYPE_STATS } from '@/engine/dialogue/scoring';
 import { absoluteDay, appendLog, makeLogEntry } from '@/engine/calendar';
@@ -85,12 +86,13 @@ function stateFromTurn(
   previous: EncounterState | null,
   interest: number,
   comfort: number,
+  providerId: string,
 ): EncounterState {
   return {
     characterId: context.character.id,
     venueId: context.venue.id,
     mode: context.mode,
-    providerId: dialogueProvider.id,
+    providerId,
     cursor: turn.cursor,
     interest: clampMeter(interest),
     comfort: clampMeter(comfort),
@@ -124,7 +126,14 @@ export async function beginEncounter(
 ): Promise<EncounterState> {
   const context = buildContext(state, characterId, venueId, openingBonus, mode);
   const turn = await provider.open(context);
-  const opened = stateFromTurn(context, turn, null, context.startingInterest, context.startingComfort);
+  const opened = stateFromTurn(
+    context,
+    turn,
+    null,
+    context.startingInterest,
+    context.startingComfort,
+    provider.id,
+  );
   return context.openingNotes.length > 0
     ? { ...opened, cue: [turn.cue, ...context.openingNotes].filter(Boolean).join(' ') }
     : opened;
@@ -166,7 +175,15 @@ export async function chooseOption(
     optionId,
   );
 
-  return applyTurn(state, encounter, turn, { speaker: 'you', text: option.text }, context, rng);
+  return applyTurn(
+    state,
+    encounter,
+    turn,
+    { speaker: 'you', text: option.text },
+    context,
+    provider.id,
+    rng,
+  );
 }
 
 /**
@@ -180,6 +197,7 @@ function applyTurn(
   turn: ProviderTurn,
   playerBeat: { speaker: 'you'; text: string },
   context: EncounterContext,
+  providerId: string,
   rng?: Rng,
 ): EncounterState {
   const interest = clampMeter(encounter.interest + turn.interestDelta);
@@ -188,7 +206,7 @@ function applyTurn(
     ...encounter,
     beats: [...encounter.beats, playerBeat],
   };
-  let next = stateFromTurn(context, turn, withPlayerBeat, interest, comfort);
+  let next = stateFromTurn(context, turn, withPlayerBeat, interest, comfort, providerId);
 
   const pick = (lines: readonly string[]): string =>
     rng ? rng.pick(lines) : (lines[0] as string);
@@ -204,7 +222,7 @@ function applyTurn(
       outcome: 'she_left',
       beats: [...next.beats.slice(0, -1), { speaker: 'her', text: line, cue: null }],
     };
-  } else if (!next.outcome && turn.cursor.turn > context.character.patience) {
+  } else if (!next.outcome && turn.cursor.turn > patienceFor(context, providerId)) {
     const windDown = pick(FORCED_ENDINGS.wind_down);
     next = {
       ...next,
@@ -254,7 +272,31 @@ export async function sayToHer(
     trimmed,
   );
 
-  return applyTurn(state, encounter, turn, { speaker: 'you', text: trimmed }, context, rng);
+  return applyTurn(
+    state,
+    encounter,
+    turn,
+    { speaker: 'you', text: trimmed },
+    context,
+    provider.id,
+    rng,
+  );
+}
+
+/**
+ * How many turns she gives you before she has somewhere else to be.
+ *
+ * The authored trees are written to land in eight or nine beats, so the number
+ * on the character is right for them. A conversation you are typing yourself
+ * has no script to run out of, and cutting it off mid-thought is the fastest
+ * way to make an open-ended conversation feel like a menu after all — so free
+ * text gets a far longer leash and lets comfort do the ending instead.
+ */
+function patienceFor(context: EncounterContext, providerId: string): number {
+  const base = context.character.patience;
+  return providerId === 'scripted'
+    ? base
+    : Math.round(base * BALANCE.conversation.freeTextPatience);
 }
 
 function blendInterest(memory: CharacterMemory, finalInterest: number): number {

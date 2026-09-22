@@ -146,11 +146,13 @@ export function peopleOnStreet(state: GameState): readonly StreetPerson[] {
     if (!door.venue) continue;
     const here = doorState(state, door);
     here.inside.forEach((characterId, index) => {
+      // Beside the door rather than on it. Standing on the threshold meant the
+      // person always won the proximity check and the door became unusable.
       people.push({
         characterId,
         venueId: door.venue as VenueId,
-        x: door.x + (index - (here.inside.length - 1) / 2) * 1.2,
-        y: door.y - 1.1,
+        x: door.x + 2.1 + index * 1.3,
+        y: door.y - 0.7,
       });
     });
   }

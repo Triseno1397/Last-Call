@@ -68,6 +68,11 @@ export async function checkService(endpoint = '/api/dialogue'): Promise<ServiceS
   if (await sampleAvailable()) {
     return { ok: true, hasKey: true, inPage: true };
   }
+  // Opened straight from disk there is no origin to fetch from, and trying
+  // logs a CORS failure for a service that cannot exist there.
+  if (typeof location !== 'undefined' && location.protocol === 'file:') {
+    return { ok: false, hasKey: false, inPage: false, reason: 'Opened from a file — no dialogue service.' };
+  }
   try {
     const response = await fetch(endpoint, { method: 'GET' });
     if (!response.ok) {

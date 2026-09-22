@@ -86,6 +86,12 @@ export const BALANCE = {
      * convincing; mistakes are not scaled, so they always cost full price.
      */
     interestScale: 0.72,
+    /**
+     * Multiplier on her patience when the player is typing his own lines. The
+     * authored trees resolve in eight or nine beats; a free conversation has no
+     * script to run out of, so it gets a much longer leash and ends on comfort.
+     */
+    freeTextPatience: 3.5,
     /** Interest and comfort she needs before a bold move is even offered. */
     boldInterest: 58,
     boldComfort: 52,

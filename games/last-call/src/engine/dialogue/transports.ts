@@ -166,3 +166,39 @@ export async function resolveTransport(
   if (await sampleAvailable()) return createSampleTransport();
   return createServiceTransport(endpoint, apiKey);
 }
+
+/**
+ * Ask Claude for one plain line of speech.
+ *
+ * The dating conversations need a scored, structured turn; a passer-by needs a
+ * voice and nothing else. This is the light path for those: raw turns in, one
+ * string out, and `null` anywhere the page cannot reach a model — which the
+ * caller is expected to treat as "use the authored line instead" rather than
+ * as an error worth showing anyone.
+ */
+export async function sampleText(
+  turns: readonly { role: 'user' | 'assistant'; content: string }[],
+  signal?: AbortSignal,
+): Promise<string | null> {
+  const claude = runtime();
+  if (!claude) return null;
+
+  try {
+    const sample = (await claude.use('sample')) as SampleNamespace | null;
+    if (!sample) return null;
+
+    // Asked for as JSON rather than prose: the sampler is a JSON API, and a
+    // single named field is the smallest shape that keeps it honest.
+    const result = await sample.json<{ line?: unknown }>(
+      [
+        ...turns,
+        { role: 'user', content: 'Answer as JSON: {"line": "<the line, plain text>"}' },
+      ],
+      { modelTier: 'default', cache: false, ...(signal ? { signal } : {}) },
+    );
+    const line = result?.line;
+    return typeof line === 'string' && line.trim() ? line.trim() : null;
+  } catch {
+    return null;
+  }
+}
