@@ -23,6 +23,7 @@ export function App(): ReactElement {
   const openThreadId = useGameStore((store) => store.openThreadId);
 
   const loadArt = useGameStore((store) => store.loadArt);
+  const detectAi = useGameStore((store) => store.detectAi);
 
   // A new screen always starts at the top, however far down the last one was.
   useEffect(() => {
@@ -33,6 +34,12 @@ export function App(): ReactElement {
   useEffect(() => {
     void loadArt();
   }, [loadArt]);
+
+  // Asked once, before the first game starts: can this page talk to Claude on
+  // its own? If so, new games open with free-text conversation already on.
+  useEffect(() => {
+    void detectAi();
+  }, [detectAi]);
 
   const body = (): ReactElement => {
     if (screen === 'creation') return <CreationScreen />;

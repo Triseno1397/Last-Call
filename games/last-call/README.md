@@ -84,6 +84,29 @@ scripted dialogue trees; for free-text conversation use `npm run dev` with a key
   hooks wired at every moment that should make a noise, first-run coaching, and
   a balance pass driven by a simulation of a sensible player.
 
+## Talking in the street
+
+Conversations happen on the map, not on a screen of their own. Walk up to
+someone, press TALK, and her line appears in a bubble over her head while
+yours appears over yours — `src/ui/art/bubble.ts` draws them in world space so
+they stay glued to the right head as the camera pans.
+
+Underneath, `TalkBar` gives two ways to answer at once: the replies the
+dialogue engine offers for this moment, and a box you can type anything into
+when the running provider takes free text. Both go through the same scoring in
+`src/engine/dialogue/scoring.ts`, so typing your own line is a way to play the
+game, not a way around it.
+
+Where people stand is a rule, not a drawing detail: `peopleOnStreet` and
+`personNear` in `src/engine/city.ts` decide it, and both the renderer and the
+"who am I next to" check read from there, so the person you can see and the
+person you can talk to are never in different places. A street conversation
+costs the same slot a night out does, charged when it closes.
+
+New games start in AI mode wherever the page can reach Claude on its own — a
+published artifact can, with no key and nothing to configure. Everywhere else
+they start scripted and Settings switches them.
+
 ## The conversation system
 
 The game never reads a dialogue tree. It calls `open()` and `respond()` on a

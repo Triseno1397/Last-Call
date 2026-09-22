@@ -5,7 +5,6 @@ import {
   CITY_BUILDINGS,
   CITY_DOORS,
   CITY_HEIGHT,
-  CITY_SPAWN,
   CITY_SURFACES,
   CITY_WALKERS,
   CITY_WIDTH,
@@ -14,10 +13,13 @@ import {
 import { getCharacter } from '@/content/characters';
 import { DAY_LABELS, SLOT_LABELS, currentDay, currentSlot, slotsRemainingToday } from '@/engine/calendar';
 import { energyReadout } from '@/state/selectors';
-import { doorNear, doorState, lightLevel, step } from '@/engine/city';
+import type { StreetPerson } from '@/engine/city';
+import { doorNear, doorState, lightLevel, peopleOnStreet, personNear, step } from '@/engine/city';
 import { useGameStore } from '@/state/gameStore';
 import { characterLook, extraLook, playerLook } from '@/ui/art/looks';
 import { drawCharacter, facingFrom, type Facing } from '@/ui/art/sprite';
+import { drawSpeechBubble, drawThinking } from '@/ui/art/bubble';
+import { TalkBar } from '@/ui/components/TalkBar';
 import { Button } from '@/ui/components/Button';
 import { Meter } from '@/ui/components/Meter';
 
@@ -32,6 +34,9 @@ const SPEED = 6.5; // tiles per second
  * the world.
  */
 const TILES_ACROSS = 11;
+
+/** How far above a character's feet the top of their head sits, at scale 1. */
+const HEAD_TOP = 34;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -119,18 +124,26 @@ function paintWorld(ctx: CanvasRenderingContext2D): void {
 }
 
 export function CityMapScreen({ game }: { game: GameState }) {
-  const { enterVenueFromMap, closeCity } = useGameStore();
+  const { enterVenueFromMap, closeCity, talkOnStreet, setCityPosition } = useGameStore();
+  const encounter = useGameStore((store) => store.encounter);
+  const streetTalk = useGameStore((store) => store.streetTalk);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
   const worldRef = useRef<HTMLCanvasElement | null>(null);
-  const position = useRef({ ...CITY_SPAWN });
+  const position = useRef({ ...useGameStore.getState().cityPosition });
   const held = useRef<Record<string, boolean>>({});
   const stick = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
   // Which way you are pointing, and how far through a stride you are. Refs,
   // not state: they change every frame and nothing outside the canvas cares.
   const facing = useRef<Facing>('down');
   const walkPhase = useRef(0);
+  const talkRef = useRef<{ person: StreetPerson | null; encounter: typeof encounter }>({
+    person: null,
+    encounter: null,
+  });
+  talkRef.current = { person: streetTalk, encounter };
   const [near, setNear] = useState<CityDoor | null>(null);
+  const [nearPerson, setNearPerson] = useState<StreetPerson | null>(null);
 
   const energy = energyReadout(game);
   const light = lightLevel(game);
@@ -162,6 +175,10 @@ export function CityMapScreen({ game }: { game: GameState }) {
     return () => observer.disconnect();
   }, []);
 
+  // Remember where we stopped, so coming back from a venue or a summary does
+  // not teleport the player to the spawn point.
+  useEffect(() => () => setCityPosition({ ...position.current }), [setCityPosition]);
+
   // The static layer is painted once; the loop only draws what moves.
   useEffect(() => {
     const world = document.createElement('canvas');
@@ -173,6 +190,12 @@ export function CityMapScreen({ game }: { game: GameState }) {
   }, []);
 
   const interact = useCallback(() => {
+    // Someone in front of you always wins over the door behind them.
+    const person = personNear(peopleOnStreet(game), position.current);
+    if (person) {
+      void talkOnStreet(person);
+      return;
+    }
     const door = doorNear(position.current);
     if (!door) return;
     const state = doorState(game, door);
@@ -181,7 +204,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
       return;
     }
     setNear(door);
-  }, [game, enterVenueFromMap]);
+  }, [game, enterVenueFromMap, talkOnStreet]);
 
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
@@ -218,6 +241,10 @@ export function CityMapScreen({ game }: { game: GameState }) {
       dx += stick.current.dx;
       dy += stick.current.dy;
 
+      if (talkRef.current.person) {
+        dx = 0;
+        dy = 0;
+      }
       const length = Math.hypot(dx, dy);
       const walking = length > 0;
       if (walking) {
@@ -241,7 +268,14 @@ export function CityMapScreen({ game }: { game: GameState }) {
         const viewH = cssHeight / zoom;
 
         const camX = clamp(position.current.x * TILE - viewW / 2, 0, Math.max(0, WIDTH - viewW));
-        const camY = clamp(position.current.y * TILE - viewH / 2, 0, Math.max(0, HEIGHT - viewH));
+        // Talking stacks two bubbles above head height, so the camera drops the
+        // pair down the frame to leave sky for them.
+        const headroom = talkRef.current.person ? 3.4 * TILE : 0;
+        const camY = clamp(
+          position.current.y * TILE - viewH / 2 - headroom,
+          0,
+          Math.max(0, HEIGHT - viewH),
+        );
 
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, cssWidth, cssHeight);
@@ -323,6 +357,41 @@ export function CityMapScreen({ game }: { game: GameState }) {
           scale: 1.06,
           highlight: true,
         });
+
+        // The conversation happens here, over the street, rather than on a
+        // screen of its own: her line above her head, yours above yours.
+        const talk = talkRef.current;
+        if (talk.person && talk.encounter) {
+          const herX = talk.person.x * TILE;
+          const youX = position.current.x * TILE;
+          const herTop = talk.person.y * TILE - HEAD_TOP * 0.92;
+          const yourTop = position.current.y * TILE - HEAD_TOP * 1.06;
+          const mine = [...talk.encounter.beats].reverse().find((beat) => beat.speaker === 'you');
+
+          // Standing face to face puts two bubbles in the same patch of sky.
+          // Lean them apart, and stack yours above hers rather than through it.
+          const close = Math.abs(herX - youX) < 5 * TILE;
+          const lean = close ? (herX >= youX ? 14 : -14) : 0;
+
+          let herHeight = 0;
+          if (talk.encounter.busy) {
+            drawThinking(ctx, herX + lean, herTop, elapsed);
+            herHeight = 20;
+          } else if (talk.encounter.outcome !== 'you_left') {
+            herHeight = drawSpeechBubble(ctx, herX + lean, herTop, talk.encounter.line, {
+              tone: 'her',
+              maxWidth: 94,
+            });
+          }
+
+          if (mine) {
+            const lift = close ? herHeight + 3 : 0;
+            drawSpeechBubble(ctx, youX - lean, yourTop - lift, mine.text, {
+              tone: 'you',
+              maxWidth: 82,
+            });
+          }
+        }
       }
 
       frame = requestAnimationFrame(loop);
@@ -337,11 +406,17 @@ export function CityMapScreen({ game }: { game: GameState }) {
     const timer = window.setInterval(() => {
       const door = doorNear(position.current);
       setNear((current) => (current?.id === door?.id ? current : door));
+      const person = personNear(peopleOnStreet(game), position.current);
+      setNearPerson((current) =>
+        current?.characterId === person?.characterId ? current : person,
+      );
     }, 120);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [game]);
 
   const nearState = near ? doorState(game, near) : null;
+  // One flag for "a conversation is happening in the street right now".
+  const talking = streetTalk !== null;
 
   const setStick = (dx: number, dy: number) => {
     stick.current = { dx, dy };
@@ -377,8 +452,18 @@ export function CityMapScreen({ game }: { game: GameState }) {
         <canvas ref={canvasRef} className="block h-full w-full" />
       </div>
 
+      {talking && encounter ? (
+        <TalkBar encounter={encounter} name={getCharacter(streetTalk.characterId).name} />
+      ) : (
       <div className="min-h-[4.5rem] rounded-2xl border border-ink-500/20 bg-night-850/70 p-3">
-        {nearState ? (
+        {nearPerson ? (
+          <>
+            <p className="font-display text-sm font-semibold">
+              {getCharacter(nearPerson.characterId).name}
+            </p>
+            <p className="text-xs text-ink-500">Right there. Hit TALK and say something.</p>
+          </>
+        ) : nearState ? (
           <>
             <p className="font-display text-sm font-semibold">{nearState.door.label}</p>
             {nearState.door.venue ? (
@@ -395,11 +480,14 @@ export function CityMapScreen({ game }: { game: GameState }) {
           </>
         ) : (
           <p className="text-xs text-ink-600">
-            Walk with the pad, or the arrow keys. Doors glow pink when they are open.
+            Walk with the pad, or the arrow keys. Doors glow pink when they are open, and people
+            you can talk to are marked.
           </p>
         )}
       </div>
+      )}
 
+      {!talking && (
       <div className="safe-bottom mt-auto flex items-end justify-between gap-4">
         <div className="grid grid-cols-3 grid-rows-3 gap-1.5">
           {([
@@ -436,13 +524,15 @@ export function CityMapScreen({ game }: { game: GameState }) {
           </Button>
           <button
             onClick={interact}
-            disabled={!near}
+            disabled={!near && !nearPerson}
             className="tap h-16 w-16 rounded-full border border-neon-400 bg-neon-500/90 text-xs font-bold text-night-950 disabled:border-night-600 disabled:bg-night-700 disabled:text-ink-600"
           >
-            {near?.venue ? 'ENTER' : 'LOOK'}
+            {nearPerson ? 'TALK' : near?.venue ? 'ENTER' : 'LOOK'}
           </button>
         </div>
       </div>
+      )}
+      {talking && <div className="safe-bottom" />}
     </main>
   );
 }

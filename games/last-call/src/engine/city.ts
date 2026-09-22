@@ -123,3 +123,54 @@ export function lightLevel(state: GameState): number {
       return 0.32;
   }
 }
+
+/**
+ * Someone standing out on the pavement you can walk up to and talk to.
+ *
+ * Where they stand is a rule, not a drawing detail: the renderer and the
+ * "who am I next to" check both read it from here, so the person you can see
+ * and the person you can talk to are never in different places.
+ */
+export interface StreetPerson {
+  characterId: CharacterId;
+  /** The venue she is outside. Her conversation uses its stat weights. */
+  venueId: VenueId;
+  x: number;
+  y: number;
+}
+
+/** Everyone out on the block right now, in the order they are drawn. */
+export function peopleOnStreet(state: GameState): readonly StreetPerson[] {
+  const people: StreetPerson[] = [];
+  for (const door of CITY_DOORS) {
+    if (!door.venue) continue;
+    const here = doorState(state, door);
+    here.inside.forEach((characterId, index) => {
+      people.push({
+        characterId,
+        venueId: door.venue as VenueId,
+        x: door.x + (index - (here.inside.length - 1) / 2) * 1.2,
+        y: door.y - 1.1,
+      });
+    });
+  }
+  return people;
+}
+
+/** The nearest person within arm's reach of `position`, if any. */
+export function personNear(
+  people: readonly StreetPerson[],
+  position: Position,
+  range = INTERACT_RANGE + 0.6,
+): StreetPerson | null {
+  let best: StreetPerson | null = null;
+  let bestDistance = range;
+  for (const person of people) {
+    const distance = Math.hypot(person.x - position.x, person.y - position.y);
+    if (distance <= bestDistance) {
+      best = person;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}

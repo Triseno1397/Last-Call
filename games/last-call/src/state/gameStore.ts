@@ -11,8 +11,11 @@ import { getActivity } from '@/content/activities';
 import { VENUES } from '@/content/venues';
 import { performActivity, skipSlot } from '@/engine/activities';
 import { advanceSlots, appendLog, makeLogEntry } from '@/engine/calendar';
+import type { StreetPerson as StreetTalk } from '@/engine/city';
+import { CITY_SPAWN } from '@/content/city';
+import type { DialogueProvider } from '@/types/dialogue';
 import { beginEncounter, chooseOption, concludeEncounter, sayToHer } from '@/engine/encounter';
-import { providerFor, scriptedProvider, supportsFreeText } from '@/engine/dialogue/providers';
+import { checkService, providerFor, scriptedProvider, supportsFreeText } from '@/engine/dialogue/providers';
 import { DialogueServiceError } from '@/engine/dialogue/llmProvider';
 import { beginDate, concludeDate, dateDueNow, payForDate } from '@/engine/dates';
 import { onDayRolled } from '@/engine/dayTick';
@@ -43,6 +46,25 @@ export interface GameStore {
   game: GameState | null;
   visit: VenueVisit | null;
   encounter: EncounterState | null;
+  /**
+   * Who you are talking to out on the pavement. Set while a conversation runs
+   * on the map rather than on the encounter screen; the slot it costs is
+   * spent when the conversation closes, exactly as leaving a venue does.
+   */
+  streetTalk: StreetTalk | null;
+  /**
+   * Where you are standing on the block. Held here rather than in the map
+   * component so stepping into a venue, a conversation summary or the day
+   * planner and coming back puts you where you left off, not at the spawn.
+   */
+  cityPosition: { x: number; y: number };
+  /**
+   * True when this page can reach Claude on its own — a published artifact,
+   * where conversation costs the player nothing and needs no key. New games
+   * start in AI mode when it is, because free-text conversation is the point
+   * and making people find a settings toggle to get it is the wrong default.
+   */
+  aiReady: boolean;
   /** The date being played right now, if this is a date rather than a night out. */
   activeDate: ScheduledDate | null;
   /** Whose thread the phone is showing. */
@@ -68,6 +90,12 @@ export interface GameStore {
   leaveVenue: () => void;
   recordDarts: (total: number) => void;
   talkTo: (characterId: CharacterId) => Promise<void>;
+  /** Start a conversation in the street, without leaving the map. */
+  talkOnStreet: (person: StreetTalk) => Promise<void>;
+  /** Remember where the player stopped walking. */
+  setCityPosition: (at: { x: number; y: number }) => void;
+  /** Ask the page whether it can run AI dialogue, once, at startup. */
+  detectAi: () => Promise<void>;
   pickOption: (optionId: string) => Promise<void>;
   /** AI mode: the player typed something of his own. */
   sayTo: (text: string) => Promise<void>;
@@ -113,6 +141,12 @@ function commit(state: GameState): GameState {
 }
 
 /** Missed dates and incoming texts land the moment the day turns over. */
+/** Start a new game in AI mode when the page can actually run it. */
+function withDialogueMode(state: GameState, aiReady: boolean): GameState {
+  if (!aiReady) return state;
+  return { ...state, settings: { ...state.settings, dialogueMode: 'ai' } };
+}
+
 function afterClock(state: GameState, dayRolled: boolean, rng: ReturnType<typeof createRng>): GameState {
   if (!dayRolled) return { ...state, rngCursor: rng.cursor };
   const ticked = onDayRolled(state, rng);
@@ -124,6 +158,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   game: null,
   visit: null,
   encounter: null,
+  streetTalk: null,
+  cityPosition: { ...CITY_SPAWN },
+  aiReady: false,
   activeDate: null,
   openThreadId: null,
   saveExists: hasSave(),
@@ -132,20 +169,41 @@ export const useGameStore = create<GameStore>((set, get) => ({
   artImportable: false,
 
   goToTitle: () =>
-    set({ screen: 'title', notice: null, saveExists: hasSave(), visit: null, encounter: null }),
+    set({
+      screen: 'title',
+      notice: null,
+      saveExists: hasSave(),
+      visit: null,
+      encounter: null,
+      streetTalk: null,
+    }),
 
   startCreation: () => set({ screen: 'creation', notice: null }),
 
   // Straight onto the street with a rolled character. The creation screen is
   // still there for anyone who wants it; it is no longer the way in.
   quickPlay: () => {
-    const game = createNewGame(randomCreation(), randomSeed());
-    set({ game: commit(game), screen: 'city_map', saveExists: true, notice: null, visit: null });
+    const game = withDialogueMode(createNewGame(randomCreation(), randomSeed()), get().aiReady);
+    set({
+      game: commit(game),
+      screen: 'city_map',
+      saveExists: true,
+      notice: null,
+      visit: null,
+      cityPosition: { ...CITY_SPAWN },
+    });
   },
 
   beginGame: (choices) => {
-    const game = createNewGame(choices, randomSeed());
-    set({ game: commit(game), screen: 'city_map', saveExists: true, notice: null, visit: null });
+    const game = withDialogueMode(createNewGame(choices, randomSeed()), get().aiReady);
+    set({
+      game: commit(game),
+      screen: 'city_map',
+      saveExists: true,
+      notice: null,
+      visit: null,
+      cityPosition: { ...CITY_SPAWN },
+    });
   },
 
   continueGame: () => {
@@ -303,6 +361,55 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  setCityPosition: (at) => set({ cityPosition: at }),
+
+  detectAi: async () => {
+    try {
+      const status = await checkService();
+      set({ aiReady: status.ok });
+    } catch {
+      set({ aiReady: false });
+    }
+  },
+
+  talkOnStreet: async (person) => {
+    const { game } = get();
+    if (!game) return;
+    set({ streetTalk: person, encounter: null, notice: null });
+
+    activeProvider = providerFor(game);
+    const open = async (provider: DialogueProvider) =>
+      beginEncounter(game, person.characterId, person.venueId, 0, provider);
+
+    try {
+      const encounter = await open(activeProvider);
+      playCue('line_her');
+      set({ encounter });
+      return;
+    } catch (error) {
+      // AI mode is best-effort. If the service is down the authored version of
+      // her is still standing right there, and the conversation carries on.
+      if (activeProvider.id !== 'scripted') {
+        activeProvider = scriptedProvider;
+        try {
+          const encounter = await open(scriptedProvider);
+          playCue('line_her');
+          set({
+            encounter,
+            notice: `${error instanceof DialogueServiceError ? error.message : 'AI dialogue unavailable'} — using the written version of her.`,
+          });
+          return;
+        } catch {
+          // fall through
+        }
+      }
+      set({
+        streetTalk: null,
+        notice: error instanceof Error ? error.message : 'She is not around right now.',
+      });
+    }
+  },
+
   pickOption: async (optionId) => {
     const { game, encounter } = get();
     if (!game || !encounter || encounter.busy || encounter.outcome) return;
@@ -402,7 +509,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   closeEncounterSummary: () => {
-    const { game, activeDate } = get();
+    const { game, activeDate, streetTalk } = get();
+    // A conversation in the street costs the same slot a night out does; it is
+    // charged here, at the end, so walking up to someone is never the trap.
+    if (streetTalk && game && !activeDate) {
+      const rng = createRng(game.rngSeed, game.rngCursor);
+      const advanced = advanceSlots(game, 1, rng);
+      const next = appendLog(advanced.state, advanced.entries);
+      set({
+        game: commit(afterClock(next, advanced.dayRolled, rng)),
+        screen: advanced.weekRolled ? 'weekEnd' : advanced.dayRolled ? 'dayEnd' : 'city_map',
+        encounter: null,
+        streetTalk: null,
+      });
+      return;
+    }
     if (activeDate && game) {
       const rng = createRng(game.rngSeed, game.rngCursor);
       const advanced = advanceSlots(game, 1, rng);

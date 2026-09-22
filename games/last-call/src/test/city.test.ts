@@ -2,7 +2,16 @@ import { describe, expect, it } from 'vitest';
 import type { GameState } from '@/types/game';
 import { CITY_DOORS, CITY_HEIGHT, CITY_SPAWN, CITY_WIDTH } from '@/content/city';
 import { VENUES } from '@/content/venues';
-import { doorNear, doorState, isWalkable, lightLevel, step, venueDoors } from '@/engine/city';
+import {
+  doorNear,
+  doorState,
+  isWalkable,
+  lightLevel,
+  peopleOnStreet,
+  personNear,
+  step,
+  venueDoors,
+} from '@/engine/city';
 import { newTestGame } from '@/test/helpers';
 
 function at(dayIndex: number, slotIndex: number): GameState {
@@ -103,5 +112,44 @@ describe('doors', () => {
 describe('time of day', () => {
   it('darkens the street in the evening', () => {
     expect(lightLevel(at(0, 2))).toBeLessThan(lightLevel(at(0, 1)));
+  });
+});
+
+describe('people on the street', () => {
+  it('puts someone outside the bar exactly when she is there', () => {
+    // Sable keeps Wednesday-to-Saturday evenings at Last Call.
+    const evening = peopleOnStreet(at(3, 2));
+    expect(evening.map((person) => person.characterId)).toContain('sable');
+
+    const morning = peopleOnStreet(at(3, 0));
+    expect(morning.map((person) => person.characterId)).not.toContain('sable');
+  });
+
+  it('stands them where the door is, so you can walk up to them', () => {
+    const bar = CITY_DOORS.find((door) => door.venue === 'neon_last_call');
+    expect(bar).toBeDefined();
+    const sable = peopleOnStreet(at(3, 2)).find((person) => person.characterId === 'sable');
+    expect(sable).toBeDefined();
+    expect(Math.abs(sable!.x - bar!.x)).toBeLessThan(2);
+    expect(Math.abs(sable!.y - bar!.y)).toBeLessThan(2);
+  });
+
+  it('carries the venue she is outside, so her conversation is weighted by it', () => {
+    const sable = peopleOnStreet(at(3, 2)).find((person) => person.characterId === 'sable');
+    expect(sable?.venueId).toBe('neon_last_call');
+  });
+
+  it('only reaches someone you are actually standing next to', () => {
+    const people = peopleOnStreet(at(3, 2));
+    const sable = people.find((person) => person.characterId === 'sable');
+    expect(sable).toBeDefined();
+
+    expect(personNear(people, { x: sable!.x, y: sable!.y })?.characterId).toBe('sable');
+    expect(personNear(people, { x: sable!.x + 0.8, y: sable!.y })?.characterId).toBe('sable');
+    expect(personNear(people, { x: sable!.x + 9, y: sable!.y + 9 })).toBeNull();
+  });
+
+  it('finds nobody on an empty street', () => {
+    expect(personNear(peopleOnStreet(at(0, 0)), CITY_SPAWN)).toBeNull();
   });
 });
