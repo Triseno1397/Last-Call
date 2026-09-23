@@ -72,6 +72,20 @@ const MIGRATIONS: Readonly<Record<number, Migration>> = {
       },
     };
   },
+  // 4 -> 5: dialogue mode gained 'auto'. Every existing save carries
+  // 'scripted', which was the old default rather than anything the player
+  // picked, so they all move to 'auto' and get free-text conversation
+  // wherever the page can run it.
+  4: (state) => {
+    const settings = (state['settings'] ?? {}) as Record<string, unknown>;
+    return {
+      ...state,
+      settings: {
+        ...settings,
+        dialogueMode: settings['dialogueMode'] === 'ai' ? 'ai' : 'auto',
+      },
+    };
+  }
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

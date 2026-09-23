@@ -39,11 +39,20 @@ export function createAiProvider(model: AiModel): FreeTextProvider {
   return createLlmDialogueProvider(apiKey ? { model, apiKey } : { model });
 }
 
-/** The provider for this game's current settings. */
-export function providerFor(state: GameState): DialogueProvider {
-  return state.settings.dialogueMode === 'ai'
-    ? createAiProvider(state.settings.aiModel)
-    : scriptedProvider;
+/**
+ * The provider for this game's current settings.
+ *
+ * `pageCanSample` answers the only question 'auto' depends on: can this page
+ * reach Claude by itself? It is passed in rather than probed here because the
+ * probe is asynchronous and the caller already has to await it — deciding at
+ * game-creation time is what let a slow runtime strand a new game in scripted
+ * mode with no way back.
+ */
+export function providerFor(state: GameState, pageCanSample = false): DialogueProvider {
+  const mode = state.settings.dialogueMode;
+  if (mode === 'scripted') return scriptedProvider;
+  if (mode === 'ai') return createAiProvider(state.settings.aiModel);
+  return pageCanSample ? createAiProvider(state.settings.aiModel) : scriptedProvider;
 }
 
 export function supportsFreeText(provider: DialogueProvider): provider is FreeTextProvider {

@@ -52,8 +52,14 @@ export interface GameSettings {
   /** Forces numeric meters on even at low awareness. Off by default. */
   alwaysShowMeters: boolean;
   sound: boolean;
-  /** 'scripted' plays the authored trees; 'ai' lets the player type anything. */
-  dialogueMode: 'scripted' | 'ai';
+  /**
+   * 'auto' uses AI dialogue wherever the page can reach Claude and falls back
+   * to the authored trees where it cannot — resolved when a conversation
+   * starts, not when the game is created, because whether the page can sample
+   * is not known instantly and a new game must not lose that race. 'scripted'
+   * and 'ai' are deliberate overrides from Settings.
+   */
+  dialogueMode: 'auto' | 'scripted' | 'ai';
   aiModel: 'claude-opus-5' | 'claude-sonnet-5' | 'claude-haiku-4-5';
   /** First-run coaching. Off means no tips at all. */
   showTips: boolean;

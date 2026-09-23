@@ -173,6 +173,31 @@ function drawHairBack(
       inked(ctx, look.hairShadow);
       break;
     }
+    case 'half_up': {
+      // Length left down behind, with the twist gathered at the crown.
+      ctx.beginPath();
+      ctx.ellipse(cx, hy + r * 0.62, r * 1.16, r * 1.42, 0, 0, Math.PI * 2);
+      inked(ctx, look.hairShadow);
+      ctx.beginPath();
+      ctx.ellipse(cx - lean * r * 0.3, hy - r * 0.86, r * 0.62, r * 0.42, 0, 0, Math.PI * 2);
+      inked(ctx, look.hairShadow);
+      break;
+    }
+    case 'curls': {
+      // Volume all round, built from overlapping lobes rather than one dome.
+      for (const [dx, dy, size] of [
+        [0, 0.3, 1.12],
+        [-0.86, -0.1, 0.62],
+        [0.86, -0.1, 0.62],
+        [-0.62, 0.72, 0.56],
+        [0.62, 0.72, 0.56],
+      ] as const) {
+        ctx.beginPath();
+        ctx.ellipse(cx + dx * r, hy + dy * r, size * r, size * r * 0.94, 0, 0, Math.PI * 2);
+        inked(ctx, look.hairShadow);
+      }
+      break;
+    }
     default:
       break;
   }
@@ -238,6 +263,39 @@ function drawHairFront(
         ctx.quadraticCurveTo(cx + side * r * 1.24, hy - r * 0.72, cx + side * r * 1.0, hy + r * 0.5);
         ctx.quadraticCurveTo(cx + side * r * 0.86, hy - r * 0.3, cx + side * r * 0.2, hy - r * 0.62);
         ctx.closePath();
+        inked(ctx, look.hair);
+      }
+      break;
+    }
+    case 'half_up': {
+      ctx.beginPath();
+      ctx.ellipse(cx, hy - r * 0.06, r * 1.08, r * 1.0, 0, Math.PI, Math.PI * 2);
+      inked(ctx, look.hair);
+      // The twist itself, sitting proud at the back of the crown.
+      ctx.beginPath();
+      ctx.ellipse(cx - dir * r * 0.34, hy - r * 1.14, r * 0.46, r * 0.3, -dir * 0.3, 0, Math.PI * 2);
+      inked(ctx, look.hair);
+      // Face-framing strands down past the cheek on each side.
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(cx + side * r * 0.82, hy - r * 0.5);
+        ctx.quadraticCurveTo(cx + side * r * 1.12, hy + r * 0.2, cx + side * r * 0.86, hy + r * 0.92);
+        ctx.quadraticCurveTo(cx + side * r * 0.76, hy + r * 0.1, cx + side * r * 0.62, hy - r * 0.44);
+        ctx.closePath();
+        inked(ctx, look.hair);
+      }
+      break;
+    }
+    case 'curls': {
+      for (const [dx, dy, size] of [
+        [0, -0.42, 0.78],
+        [-0.76, -0.24, 0.5],
+        [0.76, -0.24, 0.5],
+        [-0.36, -0.82, 0.46],
+        [0.36, -0.82, 0.46],
+      ] as const) {
+        ctx.beginPath();
+        ctx.ellipse(cx + dx * r, hy + dy * r, size * r, size * r * 0.9, 0, 0, Math.PI * 2);
         inked(ctx, look.hair);
       }
       break;

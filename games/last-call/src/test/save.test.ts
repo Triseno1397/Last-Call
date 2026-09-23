@@ -98,3 +98,30 @@ describe('migrations', () => {
     }
   });
 });
+
+describe('the dialogue-mode migration', () => {
+  it('moves an old default onto auto, so free text is not locked off forever', () => {
+    // Every save written before v5 carries 'scripted' because that was the
+    // default, not because anyone chose it.
+    const old = {
+      version: 4,
+      savedAt: Date.now(),
+      state: { ...newTestGame(), settings: { ...newTestGame().settings, dialogueMode: 'scripted' } },
+    };
+    const result = deserialize(JSON.stringify(old));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.settings.dialogueMode).toBe('auto');
+    expect(result.migratedFrom).toBe(4);
+  });
+
+  it('leaves a deliberate AI choice alone', () => {
+    const old = {
+      version: 4,
+      savedAt: Date.now(),
+      state: { ...newTestGame(), settings: { ...newTestGame().settings, dialogueMode: 'ai' } },
+    };
+    const result = deserialize(JSON.stringify(old));
+    expect(result.ok && result.state.settings.dialogueMode).toBe('ai');
+  });
+});

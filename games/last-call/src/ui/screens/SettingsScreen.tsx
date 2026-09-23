@@ -112,13 +112,15 @@ export function SettingsScreen({ game }: { game: GameState }) {
             Conversation
           </h2>
           <p className="mt-1 text-xs text-ink-500">
-            Written dialogue is hand-authored and always works. AI dialogue lets you say anything and
-            has her answer in character — she is still scored by the game, not by the model.
+            Automatic uses AI dialogue wherever this page can reach Claude and falls back to the
+            written trees where it cannot — which is almost always what you want. Written dialogue
+            is hand-authored and always works. AI dialogue lets you say anything and has her answer
+            in character; she is still scored by the game, not by the model.
           </p>
         </div>
 
         <div className="flex gap-2">
-          {(['scripted', 'ai'] as const).map((mode) => (
+          {(['auto', 'scripted', 'ai'] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => updateSettings({ dialogueMode: mode })}
@@ -128,12 +130,12 @@ export function SettingsScreen({ game }: { game: GameState }) {
                   : 'border-ink-500/20 bg-night-800/60 text-ink-300'
               }`}
             >
-              {mode === 'scripted' ? 'Written' : 'AI — say anything'}
+              {mode === 'auto' ? 'Automatic' : mode === 'scripted' ? 'Written' : 'AI always'}
             </button>
           ))}
         </div>
 
-        {settings.dialogueMode === 'ai' && (
+        {settings.dialogueMode !== 'scripted' && (
           <>
             <div className="flex flex-col gap-1.5">
               {AI_MODELS.map((model) => (

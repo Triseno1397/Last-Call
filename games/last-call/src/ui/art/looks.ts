@@ -56,11 +56,15 @@ export function playerLook(appearance: Appearance, gender: Gender): CharacterLoo
   };
 }
 
-/** Hair styles for the women, keyed off their existing palettes. */
+/**
+ * Hair, matched to the character designs generated for this game: Sable's
+ * wine-red half-up twist with face-framing strands, Wren's voluminous
+ * near-black curls, Nadia's honey-blonde high ponytail.
+ */
 const CHARACTER_HAIR: Readonly<Record<string, string>> = {
-  sable: 'long_tie_up',
-  wren: 'curtains',
-  nadia: 'undercut',
+  sable: 'half_up',
+  wren: 'curls',
+  nadia: 'long_tie_up',
 };
 
 const CHARACTER_BUILD: Readonly<Record<string, string>> = {

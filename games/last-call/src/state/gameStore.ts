@@ -164,10 +164,21 @@ function commit(state: GameState): GameState {
 }
 
 /** Missed dates and incoming texts land the moment the day turns over. */
-/** Start a new game in AI mode when the page can actually run it. */
-function withDialogueMode(state: GameState, aiReady: boolean): GameState {
-  if (!aiReady) return state;
-  return { ...state, settings: { ...state.settings, dialogueMode: 'ai' } };
+/**
+ * Can this page run AI dialogue? Asked once and remembered, and awaited by
+ * anything that needs the answer, so a conversation never starts on a guess.
+ */
+let aiCheck: Promise<boolean> | null = null;
+
+async function aiCapability(): Promise<boolean> {
+  if (!aiCheck) {
+    aiCheck = checkService()
+      .then((status) => status.ok)
+      .catch(() => false);
+  }
+  const ready = await aiCheck;
+  useGameStore.setState({ aiReady: ready });
+  return ready;
 }
 
 function afterClock(state: GameState, dayRolled: boolean, rng: ReturnType<typeof createRng>): GameState {
@@ -209,7 +220,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // Straight onto the street with a rolled character. The creation screen is
   // still there for anyone who wants it; it is no longer the way in.
   quickPlay: () => {
-    const game = withDialogueMode(createNewGame(randomCreation(), randomSeed()), get().aiReady);
+    const game = createNewGame(randomCreation(), randomSeed());
     set({
       game: commit(game),
       screen: 'city_map',
@@ -221,7 +232,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   beginGame: (choices) => {
-    const game = withDialogueMode(createNewGame(choices, randomSeed()), get().aiReady);
+    const game = createNewGame(choices, randomSeed());
     set({
       game: commit(game),
       screen: 'city_map',
@@ -361,7 +372,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!game || !visit) return;
     set({ screen: 'encounter', encounter: null, notice: null });
 
-    activeProvider = providerFor(game);
+    activeProvider = providerFor(game, await aiCapability());
     try {
       const encounter = await beginEncounter(game, characterId, visit.venueId, visit.bonus, activeProvider);
       playCue('line_her');
@@ -441,12 +452,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   detectAi: async () => {
-    try {
-      const status = await checkService();
-      set({ aiReady: status.ok });
-    } catch {
-      set({ aiReady: false });
-    }
+    await aiCapability();
   },
 
   talkOnStreet: async (person) => {
@@ -454,7 +460,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!game) return;
     set({ streetTalk: person, encounter: null, notice: null });
 
-    activeProvider = providerFor(game);
+    activeProvider = providerFor(game, await aiCapability());
     const open = async (provider: DialogueProvider) =>
       beginEncounter(game, person.characterId, person.venueId, 0, provider);
 
