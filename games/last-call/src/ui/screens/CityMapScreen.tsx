@@ -1,24 +1,35 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CityDoor } from '@/content/city';
 import type { GameState } from '@/types/game';
-import {
-  CITY_BUILDINGS,
-  CITY_DOORS,
-  CITY_HEIGHT,
-  CITY_SURFACES,
-  CITY_WALKERS,
-  CITY_WIDTH,
-  TILE,
-} from '@/content/city';
+import { CITY_DOORS, CITY_HEIGHT, CITY_WALKERS, CITY_WIDTH, TILE } from '@/content/city';
 import type { CharacterId } from '@/content/ids';
 import { getCharacter } from '@/content/characters';
 import { VENUES } from '@/content/venues';
 import { DAY_LABELS, SLOT_LABELS, currentDay, currentSlot, slotsRemainingToday } from '@/engine/calendar';
 import { energyReadout } from '@/state/selectors';
 import type { StreetPerson } from '@/engine/city';
-import { doorNear, doorState, lightLevel, peopleOnStreet, personNear, step } from '@/engine/city';
-import { atExit, interiorFor, interiorStep, roomPeople, roomPersonNear } from '@/engine/interior';
+import type { CityProp, InteriorId } from '@/content/city';
+import type { InteriorProp } from '@/content/interiors';
+import {
+  doorNear,
+  doorState,
+  lightLevel,
+  peopleOnStreet,
+  personNear,
+  step,
+  streetPropNear,
+} from '@/engine/city';
+import {
+  atExit,
+  interiorFor,
+  interiorStep,
+  isVenue,
+  propNear,
+  roomPeople,
+  roomPersonNear,
+} from '@/engine/interior';
 import { paintRoom } from '@/ui/art/room';
+import { paintLampLight, paintStreet } from '@/ui/art/street';
 import { readComfort, readInterest, meterVisibility } from '@/engine/awareness';
 import { drawMeterPanel } from '@/ui/art/bubble';
 import { useGameStore } from '@/state/gameStore';
@@ -40,94 +51,35 @@ const SPEED = 6.5; // tiles per second
  * whatever space the panel has, follows the player, and stops at the edges of
  * the world.
  */
-const TILES_ACROSS = 11;
+/**
+ * Sixteen tiles across. Eleven put the characters at a good size but showed a
+ * corridor; sixteen shows a street — the shop opposite, the corner, who is
+ * coming — and the characters are still a comfortable 45px on a phone.
+ */
+const TILES_ACROSS = 16;
+
+/** What to call the room you are in, and how to describe it. */
+const PLACE_INFO: Readonly<Record<string, { name: string; blurb: string }>> = {
+  copper_kettle: {
+    name: 'Copper Kettle',
+    blurb: 'Coffee that takes itself seriously and a window seat that does not.',
+  },
+  static_records: {
+    name: 'Static',
+    blurb: 'Crates to dig through, one listening post, and a staff pick you will not agree with.',
+  },
+};
+
+function roomInfo(id: InteriorId): { name: string; blurb: string } {
+  if (isVenue(id)) return { name: VENUES[id].name, blurb: VENUES[id].blurb };
+  return PLACE_INFO[id] ?? { name: id, blurb: '' };
+}
 
 /** How far above a character's feet the top of their head sits, at scale 1. */
 const HEAD_TOP = 34;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
-}
-
-const SURFACE_COLOURS: Record<string, string> = {
-  road: '#15131f',
-  pavement: '#221f2e',
-  plaza: '#272238',
-  park: '#16241d',
-  water: '#0b1626',
-};
-
-/** The static world, drawn once and blitted every frame. */
-function paintWorld(ctx: CanvasRenderingContext2D): void {
-  ctx.fillStyle = '#0a0812';
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-  for (const surface of CITY_SURFACES) {
-    ctx.fillStyle = SURFACE_COLOURS[surface.kind] ?? '#1a1826';
-    ctx.fillRect(surface.x * TILE, surface.y * TILE, surface.w * TILE, surface.h * TILE);
-
-    if (surface.kind === 'park') {
-      ctx.fillStyle = 'rgba(120, 200, 140, 0.10)';
-      for (let i = 0; i < 26; i += 1) {
-        const px = (surface.x + ((i * 7) % surface.w)) * TILE + ((i * 13) % TILE);
-        const py = (surface.y + ((i * 5) % surface.h)) * TILE + ((i * 11) % TILE);
-        ctx.beginPath();
-        ctx.arc(px, py, 5 + (i % 3), 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    if (surface.kind === 'water') {
-      ctx.strokeStyle = 'rgba(120, 190, 255, 0.16)';
-      ctx.lineWidth = 1;
-      for (let y = surface.y * TILE + 6; y < (surface.y + surface.h) * TILE; y += 9) {
-        ctx.beginPath();
-        ctx.moveTo(surface.x * TILE, y);
-        ctx.lineTo((surface.x + surface.w) * TILE, y);
-        ctx.stroke();
-      }
-    }
-  }
-
-  // Centre line down the main road.
-  ctx.strokeStyle = 'rgba(255, 206, 107, 0.25)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([12, 14]);
-  ctx.beginPath();
-  ctx.moveTo(0, 15.5 * TILE);
-  ctx.lineTo(WIDTH, 15.5 * TILE);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  for (const building of CITY_BUILDINGS) {
-    const x = building.x * TILE;
-    const y = building.y * TILE;
-    const w = building.w * TILE;
-    const h = building.h * TILE;
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillRect(x + 4, y + 6, w, h);
-
-    ctx.fillStyle = building.colour;
-    ctx.fillRect(x, y, w, h);
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
-    ctx.fillRect(x, y, w, 6);
-
-    if (building.windows) {
-      ctx.fillStyle = 'rgba(255, 214, 140, 0.55)';
-      for (let wx = x + 8; wx < x + w - 8; wx += 16) {
-        for (let wy = y + 14; wy < y + h - 8; wy += 14) {
-          if ((wx + wy) % 3 === 0) continue;
-          ctx.fillRect(wx, wy, 6, 7);
-        }
-      }
-    }
-
-    ctx.strokeStyle = 'rgba(154, 146, 184, 0.18)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-  }
 }
 
 export function CityMapScreen({ game }: { game: GameState }) {
@@ -138,6 +90,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
     setCityPosition,
     setInteriorPosition,
     leaveInterior,
+    enterPlace,
   } = useGameStore();
   const interior = useGameStore((store) => store.interior);
   const smallTalk = useGameStore((store) => store.smallTalk);
@@ -178,6 +131,10 @@ export function CityMapScreen({ game }: { game: GameState }) {
   const [nearPerson, setNearPerson] = useState<StreetPerson | null>(null);
   // What is within reach indoors: someone to talk to, or the way out.
   const [nearWalker, setNearWalker] = useState<number | null>(null);
+  /** Street furniture with a line, within reach. Its line shows on approach —
+   *  nobody should need a button to read a bench. */
+  const [nearProp, setNearProp] = useState<CityProp | null>(null);
+  const [nearRoomProp, setNearRoomProp] = useState<InteriorProp | null>(null);
   const [indoor, setIndoor] = useState<{ characterId: string | null; exit: boolean }>({
     characterId: null,
     exit: false,
@@ -241,7 +198,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
     const ctx = world.getContext('2d');
     if (ctx) {
       if (room) paintRoom(ctx, room);
-      else paintWorld(ctx);
+      else paintStreet(ctx);
     }
     worldRef.current = world;
   }, [room, worldW, worldH]);
@@ -264,7 +221,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
 
     // A passer-by is the simplest case: nobody else competes for them, because
     // they are only ever offered when nothing nearer is in reach.
-    if (nearWalker !== null && !nearPerson && !near?.venue) {
+    if (nearWalker !== null && !nearPerson && !near?.venue && !near?.place) {
       talkToStranger(nearWalker);
       return;
     }
@@ -285,6 +242,10 @@ export function CityMapScreen({ game }: { game: GameState }) {
       return;
     }
     if (!door) return;
+    if (door.place) {
+      enterPlace(door.place);
+      return;
+    }
     const state = doorState(game, door);
     if (door.venue && state.open) {
       enterVenueFromMap(door.venue);
@@ -299,27 +260,54 @@ export function CityMapScreen({ game }: { game: GameState }) {
     nearPerson,
     nearWalker,
     enterVenueFromMap,
+    enterPlace,
     talkOnStreet,
     talkToStranger,
     leaveInterior,
   ]);
 
   useEffect(() => {
+    // Keys typed into a text box belong to the text box. Without this, a
+    // space in the chat field was swallowed as "interact" and the arrow keys
+    // steered the player while you edited a sentence.
+    const typing = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return false;
+      const tag = target.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable;
+    };
+
     const down = (event: KeyboardEvent) => {
-      held.current[event.key.toLowerCase()] = true;
-      if (['e', 'enter', ' '].includes(event.key.toLowerCase())) {
+      if (typing(event)) return;
+      const key = event.key.toLowerCase();
+      held.current[key] = true;
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) {
+        // Arrow keys and space scroll the page by default; the game owns them.
         event.preventDefault();
+      }
+      if (['e', 'enter', ' '].includes(key) && !event.repeat) {
         interact();
       }
     };
     const up = (event: KeyboardEvent) => {
       held.current[event.key.toLowerCase()] = false;
     };
+    // A key held when the window loses focus never sends its keyup; the
+    // player would keep walking into a wall until it was pressed again.
+    const release = () => {
+      held.current = {};
+      stick.current = { dx: 0, dy: 0 };
+    };
+
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
+    window.addEventListener('blur', release);
+    document.addEventListener('visibilitychange', release);
     return () => {
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
+      window.removeEventListener('blur', release);
+      document.removeEventListener('visibilitychange', release);
     };
   }, [interact]);
 
@@ -363,7 +351,11 @@ export function CityMapScreen({ game }: { game: GameState }) {
         const dpr = Math.min(2, window.devicePixelRatio || 1);
         const cssWidth = canvas.width / dpr;
         const cssHeight = canvas.height / dpr;
-        const zoom = Math.max(1, cssWidth / (TILES_ACROSS * TILE));
+        // A room is a fraction of the street's size, so it gets a tighter
+        // camera: the whole room across the screen, rather than the room
+        // floating small in a field of wall.
+        const across = room ? Math.min(TILES_ACROSS, Math.max(12, room.width + 1)) : TILES_ACROSS;
+        const zoom = Math.max(1, cssWidth / (across * TILE));
         const viewW = cssWidth / zoom;
         const viewH = cssHeight / zoom;
 
@@ -393,13 +385,20 @@ export function CityMapScreen({ game }: { game: GameState }) {
         if (light < 1 && !room) {
           ctx.fillStyle = `rgba(8, 6, 20, ${(1 - light) * 0.72})`;
           ctx.fillRect(0, 0, worldW, worldH);
+          paintLampLight(ctx, 1 - light);
         }
 
         if (!room) {
         for (const door of CITY_DOORS) {
           const state = doorState(game, door);
-          const glow = door.venue ? (state.open ? '#ff5fa8' : '#5a4a68') : '#4fd6ff';
-          const radius = door.venue && state.open ? 14 : 9;
+          const glow = door.venue
+            ? state.open
+              ? '#ff5fa8'
+              : '#5a4a68'
+            : door.place
+              ? '#ffce6b'
+              : '#4fd6ff';
+          const radius = (door.venue && state.open) || door.place ? 14 : 9;
           const pulse = reduced ? 1 : 1 + Math.sin(elapsed * 2.2) * 0.12;
 
           const gradient = ctx.createRadialGradient(
@@ -606,7 +605,10 @@ export function CityMapScreen({ game }: { game: GameState }) {
 
     frame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frame);
-  }, [game, light, reduced, you]);
+  // `room` and the world size are deliberately here: the loop closes over
+  // them for collision and the camera, and a loop that kept the street's
+  // collision after you walked into a café left you stuck in a wall.
+  }, [game, light, reduced, you, room, interior, worldW, worldH]);
 
   // What the player is standing next to, polled gently rather than per frame.
   useEffect(() => {
@@ -614,6 +616,8 @@ export function CityMapScreen({ game }: { game: GameState }) {
       if (room && interior) {
         const person = roomPersonNear(roomPeople(game, interior), position.current);
         const exit = atExit(room, position.current);
+        const fixture = propNear(room, position.current);
+        setNearRoomProp((current) => (current === fixture ? current : fixture));
         setIndoor((current) =>
           current.characterId === (person?.characterId ?? null) && current.exit === exit
             ? current
@@ -623,6 +627,8 @@ export function CityMapScreen({ game }: { game: GameState }) {
       }
       const door = doorNear(position.current);
       setNear((current) => (current?.id === door?.id ? current : door));
+      const furniture = streetPropNear(position.current);
+      setNearProp((current) => (current?.id === furniture?.id ? current : furniture));
       let walker: number | null = null;
       let walkerDistance = 2.2;
       for (const spot of walkerSpots.current) {
@@ -665,7 +671,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
       <header className="flex items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold leading-tight">
-            {interior ? VENUES[interior].name : 'The block'}
+            {interior ? roomInfo(interior).name : 'The block'}
           </h1>
           <p className="text-xs text-ink-500">
             Week {game.clock.week} · {DAY_LABELS[currentDay(game.clock)]} ·{' '}
@@ -708,9 +714,14 @@ export function CityMapScreen({ game }: { game: GameState }) {
             </>
           ) : indoor.exit ? (
             <p className="text-xs text-ink-500">The door out. Hit OUT to step back on the street.</p>
+          ) : nearRoomProp?.line ? (
+            <>
+              <p className="font-display text-sm font-semibold capitalize">{nearRoomProp.label}</p>
+              <p className="text-xs italic text-ink-500">{nearRoomProp.line}</p>
+            </>
           ) : (
             <p className="text-xs text-ink-600">
-              {VENUES[interior].blurb} Walk up to someone to talk, or back to the door to leave.
+              {roomInfo(interior).blurb} Walk up to someone to talk, or back to the door to leave.
             </p>
           )
         ) : nearPerson ? (
@@ -731,14 +742,21 @@ export function CityMapScreen({ game }: { game: GameState }) {
                     : 'Open. Quiet, by the look of it.'
                   : nearState.reason}
               </p>
+            ) : nearState.door.place ? (
+              <p className="text-xs text-ink-500">Open. Walk in and have a look round.</p>
             ) : (
               <p className="text-xs italic text-ink-500">{nearState.door.line}</p>
             )}
           </>
+        ) : nearProp?.line ? (
+          <>
+            <p className="font-display text-sm font-semibold">{nearProp.label}</p>
+            <p className="text-xs italic text-ink-500">{nearProp.line}</p>
+          </>
         ) : (
           <p className="text-xs text-ink-600">
-            Walk with the pad, or the arrow keys. Doors glow pink when they are open, and people
-            you can talk to are marked.
+            Arrow keys or WASD to walk, Space or E to act. Pink doors are open venues, gold doors
+            are shops you can wander into, and anything with a name will tell you about itself.
           </p>
         )}
       </div>
@@ -786,7 +804,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
             disabled={
               interior
                 ? !indoor.characterId && !indoor.exit
-                : !near && !nearPerson && nearWalker === null
+                : !near && !nearPerson && nearWalker === null && !nearProp
             }
             className="tap h-16 w-16 rounded-full border border-neon-400 bg-neon-500/90 text-xs font-bold text-night-950 disabled:border-night-600 disabled:bg-night-700 disabled:text-ink-600"
           >
@@ -798,7 +816,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
                   : '—'
               : nearPerson
                 ? 'TALK'
-                : near?.venue
+                : near?.venue || near?.place
                   ? 'ENTER'
                   : nearWalker !== null
                     ? 'TALK'

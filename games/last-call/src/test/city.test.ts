@@ -25,8 +25,9 @@ describe('the block', () => {
   });
 
   it('keeps you out of buildings, the canal and the edge of the world', () => {
-    expect(isWalkable(5, 22)).toBe(false); // inside Last Call
-    expect(isWalkable(10, 28)).toBe(false); // the canal
+    expect(isWalkable(5, 31)).toBe(false); // inside Last Call
+    expect(isWalkable(10, 45)).toBe(false); // the canal
+    expect(isWalkable(47.5, 14)).toBe(false); // the fountain
     expect(isWalkable(-1, 14)).toBe(false);
     expect(isWalkable(CITY_WIDTH, 14)).toBe(false);
     expect(isWalkable(14, CITY_HEIGHT)).toBe(false);
@@ -41,22 +42,22 @@ describe('the block', () => {
 
 describe('walking', () => {
   it('moves you when the way is clear', () => {
-    const next = step({ x: 22, y: 16 }, 1, 0);
-    expect(next.x).toBeGreaterThan(22);
+    const next = step({ x: 36, y: 24 }, 1, 0);
+    expect(next.x).toBeGreaterThan(36);
   });
 
   it('stops at a wall instead of walking through it', () => {
     // On the pavement outside Last Call, facing its front wall.
-    const against = { x: 8, y: 19.2 };
+    const against = { x: 6, y: 28.8 };
     const next = step(against, 0, 1);
     expect(next.y).toBe(against.y);
   });
 
   it('slides along a wall rather than sticking to it', () => {
     // Pushing diagonally into the building line still carries you sideways.
-    const next = step({ x: 8, y: 19.2 }, 1, 1);
-    expect(next.x).toBeGreaterThan(8);
-    expect(next.y).toBe(19.2);
+    const next = step({ x: 6, y: 28.8 }, 1, 1);
+    expect(next.x).toBeGreaterThan(6);
+    expect(next.y).toBe(28.8);
   });
 });
 
@@ -94,11 +95,11 @@ describe('doors', () => {
   });
 
   it('describes flavour doors without pretending they open', () => {
-    const bench = CITY_DOORS.find((door) => door.id === 'bench');
-    if (!bench) throw new Error('missing door');
-    const state = doorState(at(0, 1), bench);
+    const home = CITY_DOORS.find((door) => door.id === 'door_home');
+    if (!home) throw new Error('missing door');
+    const state = doorState(at(0, 1), home);
     expect(state.open).toBe(false);
-    expect(state.reason).toContain('bench');
+    expect(state.reason).toContain('radiator');
   });
 
   it('has a door for every venue in the game', () => {

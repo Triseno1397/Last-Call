@@ -8,15 +8,22 @@
  */
 import type { CharacterId, VenueId } from '@/content/ids';
 import type { GameState } from '@/types/game';
+import type { InteriorId } from '@/content/city';
 import type { InteriorDef, InteriorProp } from '@/content/interiors';
 import type { Position } from '@/engine/city';
 import type { Facing } from '@/ui/art/sprite';
 import { INTERIORS } from '@/content/interiors';
+import { VENUE_IDS } from '@/content/ids';
 import { VENUES } from '@/content/venues';
 import { crowdAt } from '@/engine/characters';
 
-export function interiorFor(venue: VenueId): InteriorDef {
-  return INTERIORS[venue];
+export function interiorFor(id: InteriorId): InteriorDef {
+  return INTERIORS[id];
+}
+
+/** Venues have regulars and cost a slot; places are free to wander round. */
+export function isVenue(id: InteriorId): id is VenueId {
+  return (VENUE_IDS as readonly string[]).includes(id);
 }
 
 function within(rect: { x: number; y: number; w: number; h: number }, x: number, y: number): boolean {
@@ -58,7 +65,11 @@ export interface RoomPerson {
  * first unreserved spot, so two people never end up on the same stool and the
  * bartender is always behind the bar.
  */
-export function roomPeople(state: GameState, venueId: VenueId): readonly RoomPerson[] {
+export function roomPeople(state: GameState, id: InteriorId): readonly RoomPerson[] {
+  // A café or a record shop has no regulars in the story's sense — the leads
+  // keep their schedules at the venues — so it is scenery, not a crowd.
+  if (!isVenue(id)) return [];
+  const venueId = id;
   const def = interiorFor(venueId);
   const present = crowdAt(VENUES[venueId], state.clock, state.characters).map(
     (member) => member.character.id,

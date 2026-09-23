@@ -26,6 +26,38 @@ export function TalkBar({ encounter, name }: { encounter: EncounterState; name: 
     if (!locked && freeText) inputRef.current?.focus();
   }, [encounter.line, locked, freeText]);
 
+  // Keyboard-first: number keys pick a reply, Escape walks away, Tab returns
+  // to the box. Numbers only fire outside the text box, so typing "1" into a
+  // sentence does not also choose the first option.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const inBox = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (over) endEncounter();
+        else if (!encounter.busy) walkAway();
+        return;
+      }
+      if (inBox) return;
+      const index = Number.parseInt(event.key, 10);
+      if (!Number.isNaN(index) && index >= 1 && index <= encounter.options.length && !locked) {
+        const option = encounter.options[index - 1];
+        if (option?.available) {
+          event.preventDefault();
+          void pickOption(option.id);
+        }
+        return;
+      }
+      if ((event.key === 'Tab' || event.key === '/') && freeText && !locked) {
+        event.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [encounter.options, encounter.busy, locked, over, freeText, pickOption, walkAway, endEncounter]);
+
   const send = () => {
     const text = draft.trim();
     if (!text || locked) return;
@@ -65,7 +97,7 @@ export function TalkBar({ encounter, name }: { encounter: EncounterState; name: 
           className="tap text-xs text-ink-500 underline underline-offset-4"
           disabled={encounter.busy}
         >
-          Walk away
+          Walk away <span className="font-mono text-ink-600">Esc</span>
         </button>
       </div>
 
@@ -73,7 +105,7 @@ export function TalkBar({ encounter, name }: { encounter: EncounterState; name: 
 
       {/* Presets first: they are the fastest way to keep a conversation moving. */}
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {encounter.options.map((option) => (
+        {encounter.options.map((option, index) => (
           <button
             key={option.id}
             onClick={() => (option.available ? void pickOption(option.id) : undefined)}
@@ -84,6 +116,9 @@ export function TalkBar({ encounter, name }: { encounter: EncounterState; name: 
                 : 'border-ink-600/20 bg-night-900/60 text-ink-600'
             } ${encounter.busy ? 'opacity-50' : ''}`}
           >
+            <span className="mr-1.5 inline-block rounded border border-ink-500/40 px-1 font-mono text-[0.65rem] text-ink-500">
+              {index + 1}
+            </span>
             {option.text}
             {!option.available && option.lockReason && (
               <span className="mt-1 block text-[0.65rem] text-alarm-400">{option.lockReason}</span>
@@ -106,7 +141,7 @@ export function TalkBar({ encounter, name }: { encounter: EncounterState; name: 
             onChange={(event) => setDraft(event.target.value)}
             disabled={locked}
             maxLength={240}
-            placeholder={encounter.busy ? 'She is thinking…' : 'Say anything…'}
+            placeholder={encounter.busy ? 'She is thinking…' : 'Say anything… (Tab to type, 1-4 to pick)'}
             className="min-w-0 flex-1 rounded-xl border border-ink-500/30 bg-night-900/80 px-3 py-2 text-sm text-ink-100 placeholder:text-ink-600 focus:border-neon-400/70 focus:outline-none"
           />
           <button

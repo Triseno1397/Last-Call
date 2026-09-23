@@ -21,6 +21,24 @@ export function ChatBar({ chat }: { chat: SmallTalkState }) {
     if (!locked) inputRef.current?.focus();
   }, [chat.line, locked]);
 
+  // Escape ends the chat from anywhere, including inside the box.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        endSmallTalk();
+      } else if ((event.key === 'Tab' || event.key === '/') && !locked) {
+        const target = event.target as HTMLElement | null;
+        if (target?.tagName !== 'INPUT') {
+          event.preventDefault();
+          inputRef.current?.focus();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [endSmallTalk, locked]);
+
   return (
     <div className="flex flex-col gap-2 rounded-2xl border border-ink-500/20 bg-night-850/90 p-3">
       <div className="flex items-baseline justify-between">
@@ -29,7 +47,7 @@ export function ChatBar({ chat }: { chat: SmallTalkState }) {
           onClick={endSmallTalk}
           className="tap text-xs text-ink-500 underline underline-offset-4"
         >
-          {chat.over ? 'Done' : 'Walk away'}
+          {chat.over ? 'Done' : 'Walk away'} <span className="font-mono text-ink-600">Esc</span>
         </button>
       </div>
 

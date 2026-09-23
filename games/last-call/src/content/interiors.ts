@@ -11,12 +11,17 @@
  * matching her id, or the first free one, so a room never has two people
  * occupying the same stool.
  */
-import type { CharacterId, VenueId } from '@/content/ids';
-import type { CityRect } from '@/content/city';
+import type { CharacterId } from '@/content/ids';
+import type { CityRect, InteriorId } from '@/content/city';
 
 export type FloorKind = 'wood' | 'tile' | 'rubber' | 'rug' | 'stage';
 
 export type PropKind =
+  | 'espresso'
+  | 'pastry_case'
+  | 'crate'
+  | 'listening_post'
+  | 'poster'
   | 'counter'
   | 'stool'
   | 'table'
@@ -42,6 +47,8 @@ export interface InteriorProp extends CityRect {
   /** Tint override; otherwise the prop uses the room's palette. */
   colour?: string;
   label?: string;
+  /** What you get when you look at it. */
+  line?: string;
 }
 
 export interface InteriorStation {
@@ -54,7 +61,7 @@ export interface InteriorStation {
 }
 
 export interface InteriorDef {
-  venue: VenueId;
+  venue: InteriorId;
   width: number;
   height: number;
   /** Where you appear when you walk in, just inside the door. */
@@ -164,8 +171,73 @@ const GYM: InteriorDef = {
   ],
 };
 
-export const INTERIORS: Readonly<Record<VenueId, InteriorDef>> = {
+const CAFE: InteriorDef = {
+  venue: 'copper_kettle',
+  width: 16,
+  height: 12,
+  spawn: { x: 8, y: 9.4 },
+  exit: { x: 8, y: 10.4 },
+  palette: { wall: '#3a2a22', trim: '#5a3c2c', glow: '#ffb45a' },
+  floors: [
+    { kind: 'wood', x: 1, y: 2, w: 14, h: 9 },
+    { kind: 'rug', x: 9, y: 6, w: 5, h: 3 },
+  ],
+  props: [
+    { kind: 'counter', x: 2, y: 2.4, w: 7, h: 1.8, label: 'the counter' },
+    { kind: 'espresso', x: 3, y: 2.2, w: 1.6, h: 1, passable: true, label: 'the espresso machine' },
+    { kind: 'pastry_case', x: 6, y: 2.2, w: 2.4, h: 1, passable: true, label: 'the pastry case' },
+    { kind: 'table', x: 2.4, y: 6, w: 1.6, h: 1.4 },
+    { kind: 'table', x: 5.4, y: 6, w: 1.6, h: 1.4 },
+    { kind: 'table', x: 2.4, y: 8.6, w: 1.6, h: 1.4 },
+    { kind: 'armchair', x: 10, y: 6.4, w: 1.5, h: 1.5, label: 'the window seat' },
+    { kind: 'armchair', x: 12.2, y: 6.4, w: 1.5, h: 1.5 },
+    { kind: 'table', x: 11, y: 8.4, w: 1.6, h: 1.2 },
+    { kind: 'window', x: 10, y: 10.4, w: 5, h: 1, passable: true },
+    { kind: 'plant', x: 14, y: 2.6, w: 1, h: 1 },
+    { kind: 'lamp', x: 8, y: 5, w: 1, h: 1, passable: true },
+    { kind: 'poster', x: 12, y: 2.3, w: 1.4, h: 1, passable: true, label: 'the noticeboard', line: 'Lost cat, found cat, a band that needs a drummer, and a flat that is definitely a cupboard.' },
+  ],
+  stations: [
+    { x: 5, y: 4.6, facing: 'down' },
+    { x: 12.4, y: 5.4, facing: 'down' },
+  ],
+};
+
+const RECORDS: InteriorDef = {
+  venue: 'static_records',
+  width: 18,
+  height: 13,
+  spawn: { x: 9, y: 10.4 },
+  exit: { x: 9, y: 11.4 },
+  palette: { wall: '#1a1826', trim: '#2c2840', glow: '#9a6bff' },
+  floors: [
+    { kind: 'tile', x: 1, y: 2, w: 16, h: 10 },
+    { kind: 'rug', x: 12, y: 8, w: 4, h: 3 },
+  ],
+  props: [
+    { kind: 'counter', x: 11, y: 2.4, w: 5, h: 1.6, label: 'the counter' },
+    { kind: 'crate', x: 2, y: 3, w: 3, h: 1.6, label: 'NEW IN' },
+    { kind: 'crate', x: 6, y: 3, w: 3, h: 1.6, label: 'SOUL / FUNK' },
+    { kind: 'crate', x: 2, y: 6, w: 3, h: 1.6, label: 'JAZZ' },
+    { kind: 'crate', x: 6, y: 6, w: 3, h: 1.6, label: 'ELECTRONIC' },
+    { kind: 'crate', x: 2, y: 9, w: 3, h: 1.6, label: 'BARGAIN', line: 'Everything two pounds. Some of it is worth more; some of it is why.' },
+    { kind: 'crate', x: 6, y: 9, w: 3, h: 1.6, label: 'LOCAL' },
+    { kind: 'shelf', x: 10, y: 5.4, w: 1.4, h: 5 },
+    { kind: 'listening_post', x: 13, y: 5.4, w: 1.4, h: 1.4, label: 'the listening post', line: 'One pair of headphones, held together with tape. Whatever is on it is always better than what you came in for.' },
+    { kind: 'poster', x: 15, y: 2.2, w: 1.4, h: 1, passable: true, label: 'gig posters', line: 'Three layers deep. The band from the middle layer is playing the bar on Friday.' },
+    { kind: 'neon', x: 5, y: 2.2, w: 4, h: 0.9, passable: true, label: 'STATIC' },
+    { kind: 'plant', x: 16, y: 10.6, w: 1, h: 1 },
+  ],
+  stations: [
+    { x: 13.4, y: 4.4, facing: 'down' },
+    { x: 4, y: 8, facing: 'up' },
+  ],
+};
+
+export const INTERIORS: Readonly<Record<InteriorId, InteriorDef>> = {
   neon_last_call: BAR,
   margin_notes: BOOKSHOP,
   ironhaus: GYM,
+  copper_kettle: CAFE,
+  static_records: RECORDS,
 };

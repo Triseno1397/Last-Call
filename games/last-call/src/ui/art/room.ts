@@ -204,6 +204,87 @@ function drawProp(ctx: CanvasRenderingContext2D, prop: InteriorProp, def: Interi
       ctx.fill();
       break;
     }
+    case 'espresso': {
+      // A chrome machine on the counter: body, group heads, a steam wand.
+      block(ctx, prop, '#8a8fa8', 0.5);
+      ctx.fillStyle = '#c9cede';
+      ctx.fillRect(x + 2, y + 1, w - 4, 3);
+      ctx.fillStyle = '#2a2838';
+      ctx.fillRect(x + 3, y + h - 5, 3, 3);
+      ctx.fillRect(x + w - 6, y + h - 5, 3, 3);
+      ctx.fillStyle = '#ff5fa8';
+      ctx.fillRect(x + w / 2 - 1, y + 2, 2, 1.5);
+      break;
+    }
+    case 'pastry_case': {
+      // Glass case with three shelves of things you should not buy.
+      block(ctx, prop, mix(trim, 1.1, 8), 0.3);
+      ctx.fillStyle = 'rgba(200, 230, 255, 0.18)';
+      ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
+      for (let i = 0; i < Math.floor(w / 6); i += 1) {
+        ctx.fillStyle = ['#d8a36a', '#f0c48a', '#b5273f', '#ffe7b3'][i % 4]!;
+        ctx.beginPath();
+        ctx.arc(x + 4 + i * 6, y + h / 2, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3);
+      break;
+    }
+    case 'crate': {
+      // A record crate: a box full of sleeves, spines facing up.
+      block(ctx, prop, '#3a2a1e', 0.35);
+      const sleeves = ['#b5273f', '#243a8f', '#d8b06a', '#3fbf85', '#f0e6d8', '#7f8ad6', '#c96a3f'];
+      for (let sx = x + 3, i = 0; sx < x + w - 3; sx += 2.4, i += 1) {
+        ctx.fillStyle = sleeves[(i * 5 + Math.round(x)) % sleeves.length]!;
+        ctx.fillRect(sx, y + 2, 1.8, h * 0.4 - 1);
+      }
+      if (prop.label) {
+        ctx.fillStyle = '#f2eefc';
+        ctx.font = '700 4.5px "DM Sans", system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(prop.label, x + w / 2, y + h - 5);
+      }
+      break;
+    }
+    case 'listening_post': {
+      block(ctx, prop, '#2a2838', 0.4);
+      // Turntable and a pair of headphones hung on a hook.
+      ctx.beginPath();
+      ctx.arc(x + w * 0.4, y + h * 0.4, w * 0.24, 0, Math.PI * 2);
+      ctx.fillStyle = '#111018';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x + w * 0.4, y + h * 0.4, w * 0.06, 0, Math.PI * 2);
+      ctx.fillStyle = '#9a6bff';
+      ctx.fill();
+      ctx.strokeStyle = '#c9cede';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(x + w * 0.8, y + h * 0.5, w * 0.16, Math.PI * 0.9, Math.PI * 2.1);
+      ctx.stroke();
+      break;
+    }
+    case 'poster': {
+      // Paper on the wall, layered; the one on top is a gig.
+      for (const [dx, dy, colour] of [
+        [0, 0, '#e8dcc8'],
+        [2, -1, '#f0c48a'],
+        [4, 1, '#ff9ac2'],
+      ] as const) {
+        ctx.fillStyle = colour;
+        ctx.fillRect(x + dx, y + dy, w * 0.8, h);
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 0.7;
+        ctx.strokeRect(x + dx + 0.35, y + dy + 0.35, w * 0.8 - 0.7, h - 0.7);
+      }
+      ctx.fillStyle = '#1a1220';
+      ctx.fillRect(x + 6, y + 3, w * 0.5, 1);
+      ctx.fillRect(x + 6, y + 6, w * 0.35, 1);
+      break;
+    }
     case 'window': {
       ctx.fillStyle = 'rgba(120, 180, 255, 0.16)';
       ctx.fillRect(x, y, w, h);

@@ -12,6 +12,7 @@ import { VENUES } from '@/content/venues';
 import { performActivity, skipSlot } from '@/engine/activities';
 import { advanceSlots, appendLog, makeLogEntry } from '@/engine/calendar';
 import type { StreetPerson as StreetTalk } from '@/engine/city';
+import type { InteriorId, PlaceId } from '@/content/city';
 import { CITY_SPAWN } from '@/content/city';
 import { interiorFor } from '@/engine/interior';
 import type { SmallTalkState } from '@/engine/smallTalk';
@@ -67,7 +68,7 @@ export interface GameStore {
    * swaps the world the map screen renders rather than changing screen, so the
    * game never cuts away from itself.
    */
-  interior: VenueId | null;
+  interior: InteriorId | null;
   /** Chatting to a passer-by: no meters, no memory, just a person. */
   smallTalk: (SmallTalkState & { walkerIndex: number }) | null;
   /** Where you are standing in that room. */
@@ -112,8 +113,10 @@ export interface GameStore {
   detectAi: () => Promise<void>;
   /** Remember where the player stopped walking inside a room. */
   setInteriorPosition: (at: { x: number; y: number }) => void;
-  /** Walk back out to the street; this is where the slot gets spent. */
+  /** Walk back out to the street; a venue visit spends its slot here. */
   leaveInterior: () => void;
+  /** Step into a café or a shop. Costs nothing; there is nobody to meet. */
+  enterPlace: (place: PlaceId) => void;
   /** Strike up a conversation with a passer-by. */
   talkToStranger: (walkerIndex: number) => void;
   /** Say something to them. Free text always; they are not a scored encounter. */
@@ -430,10 +433,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setCityPosition: (at) => set({ cityPosition: at }),
   setInteriorPosition: (at) => set({ interiorPosition: at }),
 
+  enterPlace: (place) => {
+    const room = interiorFor(place);
+    playCue('venue_enter');
+    set({ interior: place, interiorPosition: { ...room.spawn }, notice: null });
+  },
+
   /** Leaving the room is what actually spends the slot, as leaving a venue did. */
   leaveInterior: () => {
     const { game, visit } = get();
     if (!game || !visit) {
+      // A place, not a venue: nothing owed to the clock.
       set({ interior: null, visit: null, screen: 'city_map' });
       return;
     }
