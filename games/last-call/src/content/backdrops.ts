@@ -24,10 +24,10 @@ export const BACKDROPS: Readonly<Partial<Record<BackdropId, string>>> = {
   static_records: `${HOST}hf_20260923_172240_7f033fb1-db22-423c-a31f-392a4f1a3c9e.png`,
   pixel_palace: `${HOST}hf_20260923_172240_29420ca3-be15-431b-8e07-28a1107c369d.png`,
   nightjar: `${HOST}hf_20260923_172241_26cb4bb4-dec5-4764-8dcf-fba5d0fb75f1.png`,
-  basilico: `${HOST}hf_20260923_172350_7fdc40ac-d925-4db9-8a6c-5a544fa0bf0a.png`,
   meridian_gallery: `${HOST}hf_20260923_172240_d0159972-09ee-4108-8707-95dce7506644.png`,
   fresh_market: `${HOST}hf_20260923_172241_72b2a437-bd70-4992-b714-e21bcebcf4b0.png`,
-  // Panels has no still yet: the render was refused by the image filter.
+  // Panels has no still yet (the render was refused by the image filter), and
+  // Akai and Slurp are waiting on the next pass, drawn to the new references.
 };
 
 export function backdropFor(place: BackdropId): string | null {

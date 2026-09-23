@@ -45,6 +45,12 @@ export interface CityBuilding extends CityRect {
   awning?: string;
   /** Storeys, for window rows. */
   floors?: number;
+  /** Stacked neon sign boxes up the façade, the way a night street is signed. */
+  signs?: readonly { text: string; colour: string }[];
+  /** An LED strip traced along the roofline and the front edge. */
+  led?: string;
+  /** A holographic advertising panel on a tall block. */
+  billboard?: string;
 }
 
 /** Interiors you can walk into that are not venues: no slot cost, no crowd. */
@@ -52,7 +58,8 @@ export type PlaceId =
   | 'copper_kettle'
   | 'static_records'
   | 'nightjar'
-  | 'basilico'
+  | 'akai'
+  | 'slurp'
   | 'pixel_palace'
   | 'panels'
   | 'meridian_gallery'
@@ -95,7 +102,10 @@ export type PropKind =
   | 'hydrant'
   | 'sign'
   | 'bollard'
-  | 'manhole';
+  | 'manhole'
+  | 'ringbar'
+  | 'holo'
+  | 'puddle';
 
 /**
  * Street furniture. Drawn into the static layer, solid where it makes sense,
@@ -151,31 +161,31 @@ export const CITY_SURFACES: readonly CitySpot[] = [
 
 export const CITY_BUILDINGS: readonly CityBuilding[] = [
   // North row, along the top pavement of the main street.
-  { id: 'laundrette', name: 'Spin City', x: 2, y: 15, w: 7, h: 5, colour: '#233a4a', windows: true, style: 'shop', awning: '#4fd6ff', floors: 2 },
-  { id: 'margin_notes', name: 'Margin Notes', x: 10, y: 15, w: 9, h: 5, colour: '#2b2a44', windows: true, style: 'shop', awning: '#ffce6b', floors: 2 },
-  { id: 'copper_kettle', name: 'Copper Kettle', x: 22, y: 15, w: 5, h: 5, colour: '#3d2b22', windows: true, style: 'shop', awning: '#c96a3f', floors: 2 },
-  { id: 'offices', name: 'Meridian House', x: 28, y: 2, w: 4, h: 18, colour: '#1b1a2e', windows: true, style: 'block', floors: 6 },
+  { id: 'laundrette', name: 'Spin City', x: 2, y: 15, w: 7, h: 5, colour: '#233a4a', windows: true, style: 'shop', awning: '#4fd6ff', floors: 2, signs: [{ text: '24H', colour: '#4fd6ff' }, { text: 'WASH', colour: '#ffce6b' }], led: '#4fd6ff' },
+  { id: 'margin_notes', name: 'Margin Notes', x: 10, y: 15, w: 9, h: 5, colour: '#14232b', windows: true, style: 'shop', awning: '#3ee6d6', sign: 'MARGIN NOTES', floors: 2, signs: [{ text: 'BOOKS', colour: '#3ee6d6' }, { text: 'COFFEE', colour: '#ffce6b' }, { text: 'LATE', colour: '#ff5fa8' }], led: '#3ee6d6' },
+  { id: 'copper_kettle', name: 'Copper Kettle', x: 22, y: 15, w: 5, h: 5, colour: '#2a2033', windows: true, style: 'shop', awning: '#ffd36b', floors: 2, signs: [{ text: 'TEA', colour: '#ffd36b' }, { text: 'OPEN', colour: '#3fbf85' }], led: '#ffd36b' },
+  { id: 'offices', name: 'Meridian House', x: 28, y: 2, w: 4, h: 18, colour: '#1b1a2e', windows: true, style: 'block', floors: 6, billboard: 'MERIDIAN', led: '#4fd6ff' },
 
   // Around the square.
-  { id: 'home', name: 'Your building', x: 43, y: 2, w: 10, h: 6, colour: '#2a2440', windows: true, style: 'house', floors: 3 },
-  { id: 'static', name: 'Static', x: 57, y: 12, w: 6, h: 8, colour: '#1f1f2e', windows: true, style: 'shop', awning: '#9a6bff', sign: 'STATIC — records', floors: 2 },
-  { id: 'panels', name: 'Panels', x: 64, y: 14, w: 6, h: 6, colour: '#1e2a3a', windows: true, style: 'shop', awning: '#ffce6b', sign: 'PANELS comics', floors: 2 },
-  { id: 'meridian_gallery', name: 'Meridian Gallery', x: 57, y: 2, w: 13, h: 8, colour: '#2a2438', windows: true, style: 'civic', sign: 'MERIDIAN GALLERY', floors: 2 },
+  { id: 'home', name: 'Your building', x: 43, y: 2, w: 10, h: 6, colour: '#2a2440', windows: true, style: 'house', floors: 3, led: '#9a6bff' },
+  { id: 'static', name: 'Static', x: 57, y: 12, w: 6, h: 8, colour: '#1f1f2e', windows: true, style: 'shop', awning: '#9a6bff', sign: 'STATIC — records', floors: 2, signs: [{ text: 'VINYL', colour: '#9a6bff' }, { text: 'STATIC', colour: '#ff5fa8' }, { text: 'BUY SELL', colour: '#4fd6ff' }], led: '#9a6bff' },
+  { id: 'panels', name: 'Panels', x: 64, y: 14, w: 6, h: 6, colour: '#1e2a3a', windows: true, style: 'shop', awning: '#ffce6b', sign: 'PANELS comics', floors: 2, signs: [{ text: 'COMICS', colour: '#ffce6b' }, { text: 'MANGA', colour: '#ff5fa8' }], led: '#ffce6b' },
+  { id: 'meridian_gallery', name: 'Meridian Gallery', x: 57, y: 2, w: 13, h: 8, colour: '#d8d4e6', windows: true, style: 'civic', sign: 'MERIDIAN GALLERY', floors: 2, led: '#e4d9ff' },
 
   // South row, along the bottom pavement of the main street.
-  { id: 'last_call', name: 'Last Call', x: 3, y: 29, w: 10, h: 6, colour: '#3a1b2e', windows: true, style: 'shop', awning: '#ff5fa8', sign: 'LAST CALL', floors: 2 },
-  { id: 'noodles', name: 'Slurp', x: 14, y: 29, w: 7, h: 6, colour: '#4a2a1a', windows: true, style: 'shop', awning: '#ffce6b', sign: 'SLURP noodle bar', floors: 2 },
-  { id: 'ironhaus', name: 'Ironhaus', x: 22, y: 29, w: 10, h: 6, colour: '#1e2a3a', windows: false, style: 'industrial', sign: 'IRONHAUS', floors: 1 },
-  { id: 'fresh_market', name: 'Fresh Market', x: 41, y: 29, w: 5, h: 6, colour: '#1e3330', windows: true, style: 'shop', awning: '#3fbf85', sign: 'FRESH MARKET', floors: 2 },
-  { id: 'cinema', name: 'The Regal', x: 47, y: 29, w: 12, h: 6, colour: '#3a1f3a', windows: false, style: 'civic', sign: 'THE REGAL', floors: 2 },
-  { id: 'carpark', name: 'Carpark', x: 60, y: 29, w: 10, h: 6, colour: '#191728', windows: false, style: 'industrial', floors: 3 },
+  { id: 'last_call', name: 'Last Call', x: 3, y: 29, w: 10, h: 6, colour: '#2a1436', windows: true, style: 'shop', awning: '#ff5fa8', sign: 'LAST CALL', floors: 2, signs: [{ text: 'BAR', colour: '#ff5fa8' }, { text: 'KARAOKE', colour: '#9a6bff' }, { text: 'LATE', colour: '#4fd6ff' }], led: '#ff5fa8' },
+  { id: 'noodles', name: 'Slurp', x: 14, y: 29, w: 7, h: 6, colour: '#1c2a24', windows: true, style: 'shop', awning: '#ffd36b', sign: 'SLURP', floors: 2, signs: [{ text: 'NOODLES', colour: '#ffd36b' }, { text: '24H', colour: '#e0362e' }, { text: 'DINER', colour: '#3fbf85' }], led: '#ffd36b' },
+  { id: 'ironhaus', name: 'Ironhaus', x: 22, y: 29, w: 10, h: 6, colour: '#1e2a3a', windows: false, style: 'industrial', sign: 'IRONHAUS', floors: 1, led: '#4fd6ff' },
+  { id: 'fresh_market', name: 'Fresh Market', x: 41, y: 29, w: 5, h: 6, colour: '#1a1030', windows: true, style: 'shop', awning: '#ff7ad9', sign: 'FRESH MARKET', floors: 2, signs: [{ text: 'GROWN HERE', colour: '#ff7ad9' }, { text: 'FRESH', colour: '#3fbf85' }], led: '#ff7ad9' },
+  { id: 'cinema', name: 'The Regal', x: 47, y: 29, w: 12, h: 6, colour: '#3a1f3a', windows: false, style: 'civic', sign: 'THE REGAL', floors: 2, led: '#ffce6b' },
+  { id: 'carpark', name: 'Carpark', x: 60, y: 29, w: 10, h: 6, colour: '#191728', windows: false, style: 'industrial', floors: 3, billboard: 'DRIVE', led: '#9a6bff' },
 
   // Along the canal.
-  { id: 'nightjar', name: 'Nightjar', x: 4, y: 36, w: 10, h: 6, colour: '#1a1c33', windows: true, style: 'shop', awning: '#4fd6ff', sign: 'NIGHTJAR cocktails', floors: 2 },
+  { id: 'nightjar', name: 'Nightjar', x: 4, y: 36, w: 10, h: 6, colour: '#0f1633', windows: true, style: 'shop', awning: '#4fd6ff', sign: 'NIGHTJAR', floors: 2, signs: [{ text: 'COCKTAILS', colour: '#4fd6ff' }, { text: 'NIGHTJAR', colour: '#ff5fa8' }, { text: 'TILL 4', colour: '#9a6bff' }], led: '#4fd6ff' },
   { id: 'warehouse', name: 'The old warehouse', x: 16, y: 36, w: 8, h: 6, colour: '#2c2430', windows: false, style: 'industrial', floors: 2 },
-  { id: 'pixel_palace', name: 'Pixel Palace', x: 25, y: 36, w: 7, h: 6, colour: '#2a1a3a', windows: true, style: 'shop', awning: '#ff5fa8', sign: 'PIXEL PALACE', floors: 2 },
-  { id: 'tattoo', name: 'Needle & Thread', x: 43, y: 36, w: 8, h: 6, colour: '#2f1a2a', windows: true, style: 'shop', awning: '#f5348c', sign: 'NEEDLE & THREAD', floors: 2 },
-  { id: 'basilico', name: 'Basilico', x: 52, y: 36, w: 7, h: 6, colour: '#3a2a1a', windows: true, style: 'shop', awning: '#c9313f', sign: 'BASILICO trattoria', floors: 2 },
+  { id: 'pixel_palace', name: 'Pixel Palace', x: 25, y: 36, w: 7, h: 6, colour: '#2a1a3a', windows: true, style: 'shop', awning: '#ff5fa8', sign: 'PIXEL PALACE', floors: 2, signs: [{ text: 'ARCADE', colour: '#ff5fa8' }, { text: 'PLAY', colour: '#4fd6ff' }, { text: 'WIN', colour: '#ffce6b' }], led: '#ff5fa8' },
+  { id: 'tattoo', name: 'Needle & Thread', x: 43, y: 36, w: 8, h: 6, colour: '#2f1a2a', windows: true, style: 'shop', awning: '#f5348c', sign: 'NEEDLE & THREAD', floors: 2, signs: [{ text: 'TATTOO', colour: '#f5348c' }, { text: 'WALK IN', colour: '#4fd6ff' }], led: '#f5348c' },
+  { id: 'akai', name: 'Akai', x: 52, y: 36, w: 7, h: 6, colour: '#2a0d10', windows: true, style: 'shop', awning: '#ff3b4a', sign: 'AKAI', floors: 2, signs: [{ text: 'AKAI', colour: '#ff3b4a' }, { text: 'OMAKASE', colour: '#ffce6b' }, { text: 'SAKE', colour: '#ff9ac2' }], led: '#ff3b4a' },
   { id: 'depot', name: 'Bus depot', x: 60, y: 36, w: 9, h: 6, colour: '#1b2128', windows: false, style: 'industrial', floors: 1 },
 ];
 
@@ -193,12 +203,12 @@ export const CITY_DOORS: readonly CityDoor[] = [
   { id: 'door_market', x: 43, y: 28, label: 'Fresh Market', place: 'fresh_market' },
   { id: 'door_nightjar', x: 9, y: 42, label: 'Nightjar', place: 'nightjar' },
   { id: 'door_arcade', x: 28, y: 42, label: 'Pixel Palace', place: 'pixel_palace' },
-  { id: 'door_basilico', x: 55, y: 42, label: 'Basilico', place: 'basilico' },
+  { id: 'door_akai', x: 55, y: 42, label: 'Akai', place: 'akai' },
+  { id: 'door_noodles', x: 17, y: 28, label: 'Slurp', place: 'slurp' },
 
   // Doors with something to say.
   { id: 'door_home', x: 48, y: 9, label: 'Home', line: 'Your flat. The radiator is making the noise again.' },
   { id: 'door_laundrette', x: 5, y: 21, label: 'Spin City', line: 'Open till late. Someone has left a single sock on top of every machine, like a warning.' },
-  { id: 'door_noodles', x: 17, y: 28, label: 'Slurp', line: 'Steam on the window, a queue out the door at nine, and a broth that has ended arguments.' },
   { id: 'door_cinema', x: 52, y: 28, label: 'The Regal', line: 'Two screens, one of them showing something from 1974. The seats are better than they have any right to be.' },
   { id: 'door_warehouse', x: 20, y: 42, label: 'The old warehouse', line: 'Chained shut. Every few months a party happens in there and nobody knows who threw it.' },
   { id: 'door_depot', x: 64, y: 42, label: 'Bus depot', line: 'The 43 lives here, apparently. You have never seen it go in or come out.' },
@@ -219,8 +229,9 @@ export const CITY_PROPS: readonly CityProp[] = [
   { id: 'statue', kind: 'statue', x: 52, y: 12, label: 'The statue', line: 'A man nobody can name, pointing at a building that is no longer there.' },
   { id: 'sq_bench_1', kind: 'bench', x: 44, y: 17, label: 'A bench', line: 'Faces the fountain. Good for pretending to read.' },
   { id: 'sq_bench_2', kind: 'bench', x: 51, y: 17, label: 'A bench', line: 'Someone has carved initials and a date. The date is wrong.' },
-  { id: 'sq_planter_1', kind: 'planter', x: 42, y: 15 },
-  { id: 'sq_planter_2', kind: 'planter', x: 53, y: 15 },
+  { id: 'ringbar_1', kind: 'ringbar', x: 43.5, y: 14.2, label: 'The ring bar', line: 'A bar built in a circle round a tree, lit from underneath. Nobody knows who serves; drinks appear.' },
+  { id: 'ringbar_2', kind: 'ringbar', x: 52, y: 15.4, label: 'The other ring bar', line: 'Same idea, other tree. This one has the better stools and the worse music.' },
+  { id: 'holo_sq', kind: 'holo', x: 41.6, y: 10.4, passable: true, label: 'A hologram', line: 'An advert for a phone, flickering. It has been the same phone for three years and it still looks like the future.' },
 
   // The park.
   ...[4, 7, 11, 17, 24].map((x, i) => ({ id: `tree_n${i}`, kind: 'tree' as const, x, y: 3.5 + (i % 2) })),
@@ -242,6 +253,10 @@ export const CITY_PROPS: readonly CityProp[] = [
   // Bollards mark the crossing from the road edge, not the pavement: on the
   // pavement they sat exactly where people walk.
   ...[29.5, 32.5, 29.5, 32.5].map((x, i) => ({ id: `bollard_${i}`, kind: 'bollard' as const, x, y: i < 2 ? 22.3 : 26.7 })),
+  { id: 'holo_office', kind: 'holo', x: 32.6, y: 7, passable: true },
+  { id: 'holo_office_2', kind: 'holo', x: 32.6, y: 13.5, passable: true },
+  { id: 'holo_carpark', kind: 'holo', x: 65, y: 28.2, passable: true },
+  ...[[10, 23.4], [26, 25.6], [45, 23.2], [58, 25.8], [36.5, 8], [36.5, 38], [20, 43.2], [64, 43.2], [47, 12.6]].map(([x, y], i) => ({ id: `puddle_${i}`, kind: 'puddle' as const, x: x!, y: y!, passable: true })),
   { id: 'manhole_1', kind: 'manhole', x: 18, y: 24, passable: true },
   { id: 'manhole_2', kind: 'manhole', x: 50, y: 25, passable: true },
   { id: 'manhole_3', kind: 'manhole', x: 36, y: 12, passable: true },

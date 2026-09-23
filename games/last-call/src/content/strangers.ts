@@ -273,18 +273,25 @@ export const STRANGERS: readonly StrangerDef[] = [
   },
   {
     id: 'waiter',
-    name: 'Sofia',
+    name: 'Sora',
     role: 'staff',
     persona:
-      "Sofia, who waits tables at Basilico, thirty-one, the owner's daughter, runs the room like a small country. Warm, quick, has a sixth sense for a first date and will seat it by the window. Will not let you order badly.",
-    opens: [
-      'Table for one, or are you waiting? You are waiting. I can always tell. Window table.',
-      'The special is the special because my father made it and he is watching. Get the special.',
-      'Sit, sit. Water is coming. Bread is coming. Everything is coming.',
-    ],
-    replies: ['See, this is why I like you already.', 'My father would argue with that, and he would lose.', 'Okay. Okay. I will bring you something and you will thank me.'],
-    exits: ['She is gone with three plates before you can ask for the bill.'],
-    look: { hairStyle: 'curls', hair: '#2a1a12', skin: '#e8bd9a', top: '#4a2a1a', bottom: '#191c14', accent: '#ffe0b5', build: 'soft', gender: 'woman' },
+      "Sora, who runs the floor at Akai, thirty-one, the owner's daughter, moves between the red velvet chairs under the blossom ceiling like she is dancing and never once looks hurried. Warm, exact, and quietly running your whole evening for you. Will not let you order badly.",
+    opens: ['Table for one, or are we waiting for someone? Either answer is fine, but one of them gets the better table.', 'You are looking at the menu like it is a test. Put it down. Tell me what you feel like and I will do the rest.'],
+    replies: ['Good. That is the right answer, and I would have told you if it was not.', 'Ha. My father says the same thing and he is wrong about it too.', 'Then you will love the second course. Do not ask me what it is.'],
+    exits: ['She catches a look from the kitchen, touches your shoulder once, and is gone across the room.'],
+    look: { hairStyle: 'long_tie_up', hair: '#141326', skin: '#e8c4a8', top: '#2a0d10', bottom: '#14121f', accent: '#ff3b4a', build: 'lean', gender: 'woman' },
+  },
+  {
+    id: 'cook',
+    name: 'Tam',
+    role: 'staff',
+    persona:
+      'Tam, behind the counter at Slurp, fifty-two, has run the noodle counter since before the neon went up outside. Ladles with one hand, argues with the radio with the other, remembers what everyone had last time. Gruff, generous, a bowl is his whole philosophy.',
+    opens: ['Sit. The broth is at the good stage. Ten more minutes and it will be even better and you will have missed it.', 'You look like the spicy one. Do not argue with me, I am never wrong about this.'],
+    replies: ['Mm. Eat, then talk. In that order.', 'Ha! You sound like my daughter. She is also wrong.', 'Fine. Fine. But you are having the egg.'],
+    exits: ['A bell rings from the back and he is gone, shouting at a pot.'],
+    look: { hairStyle: 'buzz', hair: '#b9c2d6', skin: '#c99a78', top: '#f0e6d8', bottom: '#1c2a24', accent: '#e0362e', build: 'broad', gender: 'man' },
   },
   {
     id: 'gallery_guide',
@@ -314,7 +321,7 @@ export const STRANGERS: readonly StrangerDef[] = [
     ],
     replies: ['Okay, that is the most normal thing anyone has said in this lane all night.', 'Ha! I am telling my flatmate that one.', 'Right, well, that is 4.20, and a piece of advice for free.'],
     exits: ['The next customer plonks down a single lemon and she raises an eyebrow at you as if to say: see?'],
-    look: { hairStyle: 'long_tie_up', hair: '#141326', skin: '#8d5a3c', top: '#1e3330', bottom: '#101c22', accent: '#3fbf85', build: 'lean', gender: 'woman' },
+    look: { hairStyle: 'curtains', hair: '#ff7a59', skin: '#f0cdae', top: '#1b1a2e', bottom: '#2a2838', accent: '#c9cede', build: 'lean', gender: 'woman' },
   },
 
   // --- People who turn up ---------------------------------------------------
@@ -427,6 +434,17 @@ export const STRANGERS: readonly StrangerDef[] = [
     replies: ['Okay, that is actually a good point and I hate that it came from someone without gloves on.', 'Right? RIGHT. Nobody gets that.'],
     exits: ['He goes very still, holds a bagged issue up to the light, and forgets you exist entirely.'],
     look: { hairStyle: 'undercut', hair: '#141326', skin: '#8d5a3c', top: '#1e2a3a', bottom: '#12161f', accent: '#e2a03f', build: 'lean', gender: 'man' },
+  },
+  {
+    id: 'night_owl',
+    name: 'Woman on the end stool',
+    role: 'visitor',
+    persona:
+      'Rin, twenty-nine, on the last stool at Slurp at whatever hour it is, laptop open, headphones round her neck, eating with one hand and shipping code with the other. Dry, quick, allergic to small talk until it turns out to be interesting.',
+    opens: ['If you are about to ask what I am working on, the answer is "a bug", and it has been the answer since Tuesday.', 'The egg. Get the egg. I am not going to say it twice.'],
+    replies: ['Huh. Okay. That is a more interesting answer than I was braced for.', 'Ha. No. But keep going, I want to see where this ends up.'],
+    exits: ['Her laptop pings, she says "finally" to nobody, and the headphones go back on.'],
+    look: { hairStyle: 'undercut', hair: '#243a8f', skin: '#e8c4a8', top: '#1b1622', bottom: '#12161f', accent: '#ffd36b', build: 'lean', gender: 'woman' },
   },
   {
     id: 'shopper',

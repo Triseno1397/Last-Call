@@ -58,12 +58,12 @@ function keyline(ctx: CanvasRenderingContext2D, x: number, y: number, w: number,
 // ---------------------------------------------------------------------------
 
 const SURFACE: Readonly<Record<string, string>> = {
-  road: '#17151f',
-  pavement: '#25222f',
-  plaza: '#2a2537',
+  road: '#12111c',
+  pavement: '#22202e',
+  plaza: '#1e2030',
   park: '#17261c',
   water: '#0b1626',
-  crossing: '#17151f',
+  crossing: '#12111c',
 };
 
 function paintSurface(ctx: CanvasRenderingContext2D, spot: CitySpot): void {
@@ -75,8 +75,14 @@ function paintSurface(ctx: CanvasRenderingContext2D, spot: CitySpot): void {
 
   switch (spot.kind) {
     case 'road': {
-      // Asphalt speckle, then a kerb line along each long edge.
-      ctx.fillStyle = 'rgba(255,255,255,0.035)';
+      // Wet asphalt: a cold sheen across it, then the speckle.
+      const sheen = ctx.createLinearGradient(x, y, x + w, y + h);
+      sheen.addColorStop(0, 'rgba(79, 214, 255, 0.06)');
+      sheen.addColorStop(0.5, 'rgba(255, 95, 168, 0.05)');
+      sheen.addColorStop(1, 'rgba(154, 107, 255, 0.06)');
+      ctx.fillStyle = sheen;
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = 'rgba(255,255,255,0.045)';
       for (let i = 0; i < (w * h) / 90; i += 1) {
         const px = x + noise(i, spot.x) * w;
         const py = y + noise(spot.y, i) * h;
@@ -111,6 +117,16 @@ function paintSurface(ctx: CanvasRenderingContext2D, spot: CitySpot): void {
       break;
     }
     case 'plaza': {
+      // Dark marble with gold veins, from the plaza in the references.
+      ctx.strokeStyle = 'rgba(212, 175, 55, 0.28)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 14; i += 1) {
+        const vx = x + ((i * 61) % w);
+        ctx.beginPath();
+        ctx.moveTo(vx, y);
+        ctx.bezierCurveTo(vx + 30, y + h * 0.3, vx - 35, y + h * 0.7, vx + 15, y + h);
+        ctx.stroke();
+      }
       // Flagstones in a staggered bond.
       ctx.strokeStyle = 'rgba(0,0,0,0.3)';
       ctx.lineWidth = 1;
@@ -282,16 +298,105 @@ function shopfront(
     ctx.fill();
   }
 
-  // Sign board above the awning, with the name.
+  // Sign board above the awning, with the name in neon.
   const sign = building.sign ?? building.name;
   const boardY = edge === 'bottom' ? signY - 7 : signY + 6;
   rect(ctx, x + 3, boardY, w - 6, 9, mix(building.colour, 0.45));
   keyline(ctx, x + 3, boardY, w - 6, 9);
-  ctx.fillStyle = awning;
-  ctx.font = `700 ${Math.min(7, Math.max(5, (w - 12) / (sign.length * 0.62)))}px "Space Grotesk", system-ui, sans-serif`;
+  neonText(ctx, sign.toUpperCase(), x + w / 2, boardY + 4.5, awning, Math.min(7, Math.max(5, (w - 12) / (sign.length * 0.62))));
+
+  // Stacked sign boxes up the side of the façade, each its own colour, the
+  // way a night street is signed in the references.
+  if (building.signs?.length) {
+    const boxW = Math.min(26, w - 10);
+    const boxH = 8;
+    const bx = x + w - boxW - 4;
+    let by = edge === 'bottom' ? boardY - 12 : boardY + 12;
+    for (const box of building.signs) {
+      rect(ctx, bx + 1, by + 1, boxW, boxH, 'rgba(0,0,0,0.5)');
+      rect(ctx, bx, by, boxW, boxH, mix(box.colour, 0.42, 10));
+      const aura = ctx.createRadialGradient(bx + boxW / 2, by + boxH / 2, 1, bx + boxW / 2, by + boxH / 2, boxW);
+      aura.addColorStop(0, `${box.colour}88`);
+      aura.addColorStop(1, `${box.colour}00`);
+      ctx.fillStyle = aura;
+      ctx.fillRect(bx - boxW, by - boxH * 2, boxW * 3, boxH * 5);
+      keyline(ctx, bx, by, boxW, boxH);
+      neonText(ctx, box.text, bx + boxW / 2, by + boxH / 2, box.colour, Math.min(6, (boxW - 4) / (box.text.length * 0.62)));
+      by += edge === 'bottom' ? -(boxH + 3) : boxH + 3;
+    }
+  }
+}
+
+/** Glowing lettering: the glyphs drawn twice, once soft and once hard. */
+function neonText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  cx: number,
+  cy: number,
+  colour: string,
+  size: number,
+): void {
+  ctx.font = `700 ${size}px "Space Grotesk", system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(sign.toUpperCase(), x + w / 2, boardY + 4.5);
+  ctx.shadowColor = colour;
+  ctx.shadowBlur = 6;
+  ctx.fillStyle = colour;
+  ctx.fillText(text, cx, cy);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = mix(colour, 1.5, 90);
+  ctx.fillText(text, cx, cy);
+}
+
+/** An LED strip along the roofline and down the front corner. */
+function ledStrip(ctx: CanvasRenderingContext2D, building: CityBuilding, edge: 'bottom' | 'top' | 'left' | 'right'): void {
+  if (!building.led) return;
+  const x = building.x * TILE;
+  const y = building.y * TILE;
+  const w = building.w * TILE;
+  const h = building.h * TILE;
+  const ly = edge === 'bottom' ? y + 1 : y + h - 2;
+  const aura = ctx.createLinearGradient(x, ly - 8, x, ly + 9);
+  aura.addColorStop(0, `${building.led}00`);
+  aura.addColorStop(0.5, `${building.led}66`);
+  aura.addColorStop(1, `${building.led}00`);
+  ctx.fillStyle = aura;
+  ctx.fillRect(x, ly - 8, w, 17);
+  rect(ctx, x, ly, w, 1.6, building.led);
+  rect(ctx, x, ly + 0.4, w, 0.6, 'rgba(255,255,255,0.75)');
+  rect(ctx, x + w * 0.72, y, 1.2, h, `${building.led}99`);
+}
+
+/** A holographic advertising panel on a tall block: translucent, scanlined. */
+function billboard(ctx: CanvasRenderingContext2D, building: CityBuilding): void {
+  if (!building.billboard) return;
+  const x = building.x * TILE;
+  const y = building.y * TILE;
+  const w = building.w * TILE;
+  const h = building.h * TILE;
+  const bw = Math.min(w - 8, 56);
+  const bh = Math.min(h * 0.45, 60);
+  const bx = x + (w - bw) / 2;
+  const by = y + 12;
+  const panel = ctx.createLinearGradient(bx, by, bx + bw, by + bh);
+  panel.addColorStop(0, 'rgba(79, 214, 255, 0.55)');
+  panel.addColorStop(1, 'rgba(255, 95, 168, 0.55)');
+  ctx.fillStyle = panel;
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  for (let sy = by; sy < by + bh; sy += 3) ctx.fillRect(bx, sy, bw, 1);
+  ctx.strokeStyle = 'rgba(200, 240, 255, 0.7)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  const aura = ctx.createRadialGradient(bx + bw / 2, by + bh / 2, 4, bx + bw / 2, by + bh / 2, bw);
+  aura.addColorStop(0, 'rgba(79, 214, 255, 0.28)');
+  aura.addColorStop(1, 'rgba(79, 214, 255, 0)');
+  ctx.fillStyle = aura;
+  ctx.fillRect(bx - bw, by - bh, bw * 3, bh * 3);
+  const lines = building.billboard.split(' ');
+  lines.forEach((line, i) => {
+    neonText(ctx, line, bx + bw / 2, by + bh / 2 + (i - (lines.length - 1) / 2) * 9, '#e8fbff', Math.min(9, (bw - 6) / (line.length * 0.62)));
+  });
 }
 
 function paintBuilding(ctx: CanvasRenderingContext2D, building: CityBuilding): void {
@@ -314,10 +419,13 @@ function paintBuilding(ctx: CanvasRenderingContext2D, building: CityBuilding): v
       if (edge === 'bottom') windowRows(ctx, x, y, w, h - ground - 10, building.windows, seed);
       else windowRows(ctx, x, y + ground + 16, w, h - ground - 16, building.windows, seed);
       shopfront(ctx, building, edge);
+      ledStrip(ctx, building, edge);
       break;
     }
     case 'block': {
       windowRows(ctx, x, y + 8, w, h - 8, building.windows, seed, 12);
+      billboard(ctx, building);
+      ledStrip(ctx, building, edge);
       // Rooftop plant and a parapet.
       rect(ctx, x, y, w, 6, mix(building.colour, 1.25, 10));
       rect(ctx, x + w * 0.2, y - 5, w * 0.25, 5, mix(building.colour, 0.9));
@@ -350,6 +458,8 @@ function paintBuilding(ctx: CanvasRenderingContext2D, building: CityBuilding): v
       ctx.fillStyle = 'rgba(0,0,0,0.22)';
       for (let cx = x + 3; cx < x + w; cx += 5) ctx.fillRect(cx, y + 4, 2, h - 4);
       rect(ctx, x, y, w, 4, mix(building.colour, 1.2, 8));
+      billboard(ctx, building);
+      ledStrip(ctx, building, edge);
       const rw = Math.min(28, w * 0.4);
       const rx = x + w / 2 - rw / 2;
       const ry = edge === 'bottom' ? y + h - 16 : y + 4;
@@ -394,11 +504,58 @@ function paintBuilding(ctx: CanvasRenderingContext2D, building: CityBuilding): v
         ctx.fillText(building.sign, x + w / 2, my + 4);
       }
       windowRows(ctx, x, edge === 'bottom' ? y + 4 : y + 30, w, h - 34, building.windows, seed, 16);
+      ledStrip(ctx, building, edge);
+      break;
+    }
+    case 'house': {
+      ledStrip(ctx, building, edge);
       break;
     }
   }
 
   keyline(ctx, x, y, w, h);
+}
+
+/**
+ * Neon on a wet street: every lit sign smears down the pavement and across
+ * the road in its own colour. Painted after the buildings, under the props,
+ * with additive blending so overlapping colours add up rather than muddy.
+ */
+function paintReflections(ctx: CanvasRenderingContext2D): void {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const building of CITY_BUILDINGS) {
+    const colours = [
+      ...(building.signs?.map((box) => box.colour) ?? []),
+      ...(building.awning ? [building.awning] : []),
+      ...(building.led ? [building.led] : []),
+    ];
+    if (colours.length === 0) continue;
+    const edge = frontEdge(building);
+    const x = building.x * TILE;
+    const w = building.w * TILE;
+    const reach = TILE * 6;
+    const from = edge === 'bottom' ? (building.y + building.h) * TILE : building.y * TILE;
+    const to = edge === 'bottom' ? from + reach : from - reach;
+    colours.forEach((colour, i) => {
+      const sx = x + w * (0.2 + (0.6 * i) / Math.max(1, colours.length - 1));
+      const sw = Math.max(10, w * 0.28);
+      const streak = ctx.createLinearGradient(0, from, 0, to);
+      streak.addColorStop(0, `${colour}70`);
+      streak.addColorStop(0.45, `${colour}26`);
+      streak.addColorStop(1, `${colour}00`);
+      ctx.fillStyle = streak;
+      ctx.fillRect(sx - sw / 2, Math.min(from, to), sw, reach);
+      // A brighter core down the middle, the way a sign sits in a puddle.
+      const core = ctx.createLinearGradient(0, from, 0, to);
+      core.addColorStop(0, `${colour}55`);
+      core.addColorStop(0.3, `${colour}18`);
+      core.addColorStop(1, `${colour}00`);
+      ctx.fillStyle = core;
+      ctx.fillRect(sx - sw / 6, Math.min(from, to), sw / 3, reach);
+    });
+  }
+  ctx.restore();
 }
 
 // ---------------------------------------------------------------------------
@@ -666,6 +823,104 @@ function paintProp(ctx: CanvasRenderingContext2D, prop: CityProp): void {
       rect(ctx, x - 1.5, y - 7, 3, 1.5, '#ffce6b');
       break;
     }
+    case 'ringbar': {
+      // A bar built in a ring round a tree, lit from underneath, with stools.
+      const rw = TILE * 1.7;
+      const rh = TILE * 1.1;
+      const glowRing = ctx.createRadialGradient(x, y, rw * 0.4, x, y, rw * 1.6);
+      glowRing.addColorStop(0, 'rgba(200, 245, 255, 0.4)');
+      glowRing.addColorStop(1, 'rgba(200, 245, 255, 0)');
+      ctx.fillStyle = glowRing;
+      ctx.beginPath();
+      ctx.ellipse(x, y, rw * 1.6, rh * 1.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.beginPath();
+      ctx.ellipse(x + 2, y + 4, rw, rh, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 7;
+      ctx.strokeStyle = '#e8f7ff';
+      ctx.beginPath();
+      ctx.ellipse(x, y, rw, rh, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#4fd6ff';
+      ctx.beginPath();
+      ctx.ellipse(x, y + 3, rw, rh, 0, 0, Math.PI);
+      ctx.stroke();
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(x, y, rw + 3.5, rh + 3.5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      // The tree in the middle, and stools round the outside.
+      rect(ctx, x - 2, y - 14, 4, 16, '#3a2a1e');
+      ctx.fillStyle = '#7a2a2a';
+      for (const [dx, dy, r] of [[0, -18, 9], [-7, -13, 7], [7, -13, 7]] as const) {
+        ctx.beginPath();
+        ctx.arc(x + dx, y + dy, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+        ctx.fillStyle = '#7a3aa8';
+        ctx.beginPath();
+        ctx.ellipse(x + Math.cos(a) * (rw + 7), y + Math.sin(a) * (rh + 6), 2.6, 1.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+    case 'holo': {
+      // A floating hologram: a translucent panel with scanlines and a glyph.
+      const hw = 14;
+      const hh = 20;
+      const hx = x - hw / 2;
+      const hy = y - hh;
+      const panel = ctx.createLinearGradient(hx, hy, hx, hy + hh);
+      panel.addColorStop(0, 'rgba(79, 214, 255, 0.5)');
+      panel.addColorStop(1, 'rgba(255, 95, 168, 0.45)');
+      ctx.fillStyle = panel;
+      ctx.fillRect(hx, hy, hw, hh);
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      for (let sy = hy; sy < hy + hh; sy += 2.5) ctx.fillRect(hx, sy, hw, 0.8);
+      ctx.strokeStyle = 'rgba(220, 250, 255, 0.8)';
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(hx + 0.4, hy + 0.4, hw - 0.8, hh - 0.8);
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.beginPath();
+      ctx.arc(x, hy + hh * 0.4, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+      rect(ctx, x - 4, hy + hh * 0.66, 8, 1.2, 'rgba(255,255,255,0.7)');
+      rect(ctx, x - 3, hy + hh * 0.78, 6, 1.2, 'rgba(255,255,255,0.5)');
+      const beam = ctx.createLinearGradient(x, hy + hh, x, y + 3);
+      beam.addColorStop(0, 'rgba(79, 214, 255, 0.35)');
+      beam.addColorStop(1, 'rgba(79, 214, 255, 0)');
+      ctx.fillStyle = beam;
+      ctx.fillRect(hx + 3, hy + hh, hw - 6, 5);
+      break;
+    }
+    case 'puddle': {
+      // Standing water: a dark shape with the sky's colours lying in it.
+      const pw = TILE * 1.6;
+      const ph = TILE * 0.6;
+      ctx.fillStyle = 'rgba(8, 6, 20, 0.55)';
+      ctx.beginPath();
+      ctx.ellipse(x, y, pw, ph, 0, 0, Math.PI * 2);
+      ctx.fill();
+      const wet = ctx.createLinearGradient(x - pw, y, x + pw, y);
+      wet.addColorStop(0, 'rgba(79, 214, 255, 0.28)');
+      wet.addColorStop(0.5, 'rgba(255, 95, 168, 0.22)');
+      wet.addColorStop(1, 'rgba(154, 107, 255, 0.28)');
+      ctx.fillStyle = wet;
+      ctx.beginPath();
+      ctx.ellipse(x, y, pw * 0.9, ph * 0.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.ellipse(x, y - 1, pw * 0.7, ph * 0.45, 0, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.stroke();
+      break;
+    }
     case 'manhole': {
       ctx.beginPath();
       ctx.ellipse(x, y, 5, 3.2, 0, 0, Math.PI * 2);
@@ -706,6 +961,9 @@ export function paintStreet(ctx: CanvasRenderingContext2D): void {
   for (const building of [...CITY_BUILDINGS].sort((a, b) => a.y + a.h - (b.y + b.h))) {
     paintBuilding(ctx, building);
   }
+
+  // The neon lying in the wet, before anything stands on it.
+  paintReflections(ctx);
 
   // Furniture likewise, so a bench in front of a tree overlaps its trunk.
   for (const prop of [...CITY_PROPS].sort((a, b) => a.y - b.y)) {

@@ -67,7 +67,7 @@ const TILES_ACROSS = 16;
 const PLACE_INFO: Readonly<Record<string, { name: string; blurb: string }>> = {
   copper_kettle: {
     name: 'Copper Kettle',
-    blurb: 'Coffee that takes itself seriously and a window seat that does not.',
+    blurb: 'Tea and coffee under a mirrored ceiling, in wicker chairs shaped like cocoons.',
   },
   static_records: {
     name: 'Static',
@@ -77,9 +77,13 @@ const PLACE_INFO: Readonly<Record<string, { name: string; blurb: string }>> = {
     name: 'Nightjar',
     blurb: 'Low light, a back bar two hundred bottles deep, and a corner booth where the good conversations happen.',
   },
-  basilico: {
-    name: 'Basilico',
-    blurb: 'A family trattoria with a wood oven, a wine wall and a special nobody has ever refused.',
+  akai: {
+    name: 'Akai',
+    blurb: 'Red velvet under a ceiling of blossom, paper lanterns, and an omakase nobody has ever refused.',
+  },
+  slurp: {
+    name: 'Slurp',
+    blurb: 'A noodle counter that never closes: red stools, a checkerboard floor, and a broth that has ended arguments.',
   },
   pixel_palace: {
     name: 'Pixel Palace',
@@ -91,11 +95,11 @@ const PLACE_INFO: Readonly<Record<string, { name: string; blurb: string }>> = {
   },
   meridian_gallery: {
     name: 'Meridian Gallery',
-    blurb: 'Five paintings, two sculptures, a bench at exactly the right distance, and someone who will argue with you about all of it.',
+    blurb: 'White on white under rings of light and a mirrored ceiling: five paintings, two sculptures, and someone who will argue with you about all of them.',
   },
   fresh_market: {
     name: 'Fresh Market',
-    blurb: 'The late shop: meal deals, the good bread, flowers by the door, and a till that has opinions.',
+    blurb: 'The late shop, grown on the premises under purple light: racks of greens, the good bread, flowers by the door.',
   },
   street: {
     name: 'The block',

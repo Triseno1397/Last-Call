@@ -54,7 +54,7 @@ describe('every place on the block', () => {
 
   it('has a still for every room except the one the filter refused', () => {
     const missing = Object.keys(INTERIORS).filter((id) => !(id in BACKDROPS));
-    expect(missing).toEqual(['panels']);
+    expect([...missing].sort()).toEqual(['akai', 'panels', 'slurp']);
     expect(BACKDROPS.street).toMatch(/^https:\/\//);
   });
 });
@@ -139,7 +139,8 @@ describe('things you can do for her', () => {
   it('offers a drink at a bar and dinner at the restaurant, and nothing on the street', () => {
     expect(gesturesFor('neon_last_call').map((g) => g.id)).toContain('buy_drink');
     expect(gesturesFor('nightjar').map((g) => g.id)).toContain('buy_cocktail');
-    expect(gesturesFor('basilico').map((g) => g.id)).toContain('buy_dinner');
+    expect(gesturesFor('akai').map((g) => g.id)).toContain('buy_dinner');
+    expect(gesturesFor('slurp').map((g) => g.id)).toContain('buy_noodles');
     expect(gesturesFor('pixel_palace').map((g) => g.id)).toContain('arcade_round');
     expect(gesturesFor(null)).toEqual([]);
   });

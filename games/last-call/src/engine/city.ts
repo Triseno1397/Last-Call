@@ -38,6 +38,7 @@ const PROP_FOOTPRINT: Readonly<Record<string, { w: number; h: number }>> = {
   hydrant: { w: 0.5, h: 0.5 },
   sign: { w: 0.6, h: 0.6 },
   bollard: { w: 0.4, h: 0.4 },
+  ringbar: { w: 3.4, h: 2.2 },
 };
 
 /** The rectangle a prop occupies, centred on its position. */
