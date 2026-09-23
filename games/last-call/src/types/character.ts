@@ -89,6 +89,12 @@ export interface CharacterDef {
   facts: readonly CharacterFact[];
   outfits: readonly OutfitDef[];
   palette: CharacterPalette;
+  /**
+   * A full-size portrait of her, as a URL the player's browser can load. The
+   * conversation scene shows it beside her lines; without it the drawn
+   * placeholder stands in.
+   */
+  portrait?: string;
   /** Characters who know her. Phase 3 spreads reputation along these. */
   knows: readonly CharacterId[];
   dialogue: DialogueTree;

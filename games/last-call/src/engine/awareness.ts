@@ -13,7 +13,13 @@ import { BALANCE } from '@/config/gameConfig';
  */
 export type MeterVisibility = 'hidden' | 'vague' | 'coarse' | 'precise' | 'analytic';
 
-const BY_LEVEL: readonly MeterVisibility[] = ['hidden', 'vague', 'coarse', 'precise', 'analytic'];
+/**
+ * How much of her you can read at each awareness level. Nothing is hidden any
+ * more: level 0 already shows segments, a word and which way things moved,
+ * because a bar that renders as dashes reads as a broken bar, not a mechanic.
+ * What awareness buys from there is precision — numbers, then reasons.
+ */
+const BY_LEVEL: readonly MeterVisibility[] = ['coarse', 'coarse', 'precise', 'precise', 'analytic'];
 
 export const AWARENESS_BLURBS: readonly string[] = [
   'You cannot read a room to save your life. Watch her face and guess.',

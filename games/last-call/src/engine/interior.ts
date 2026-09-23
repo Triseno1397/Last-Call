@@ -16,6 +16,8 @@ import { INTERIORS } from '@/content/interiors';
 import { VENUE_IDS } from '@/content/ids';
 import { VENUES } from '@/content/venues';
 import { crowdAt } from '@/engine/characters';
+import type { StrangerDef } from '@/content/strangers';
+import { getStranger } from '@/content/strangers';
 
 export function interiorFor(id: InteriorId): InteriorDef {
   return INTERIORS[id];
@@ -83,7 +85,9 @@ export function roomPeople(state: GameState, id: InteriorId): readonly RoomPerso
       (station, at) => station.character === characterId && !taken.has(at),
     );
     if (index < 0) {
-      index = def.stations.findIndex((station, at) => !station.character && !taken.has(at));
+      index = def.stations.findIndex(
+        (station, at) => !station.character && !station.stranger && !taken.has(at),
+      );
     }
     if (index < 0) continue;
     taken.add(index);
@@ -92,6 +96,56 @@ export function roomPeople(state: GameState, id: InteriorId): readonly RoomPerso
   }
 
   return placed;
+}
+
+export interface RoomStranger {
+  stranger: StrangerDef;
+  x: number;
+  y: number;
+  facing: Facing;
+}
+
+/**
+ * Who is in a room who is not part of the story: the staff, who are always at
+ * their post, and the visitors, who turn up some of the time. Which visitors
+ * are in is decided by the day and the slot, so the same afternoon always has
+ * the same crowd — a room you walk out of and back into is not a slot machine.
+ */
+export function roomStrangers(state: GameState, id: InteriorId): readonly RoomStranger[] {
+  const def = interiorFor(id);
+  const { dayIndex, slotIndex, week } = state.clock;
+  const placed: RoomStranger[] = [];
+  for (const station of def.stations) {
+    if (!station.stranger) continue;
+    const stranger = getStranger(station.stranger);
+    if (!stranger) continue;
+    if (stranger.role === 'visitor') {
+      // A cheap hash of when it is and who they are. Roughly two visits in three.
+      let hash = week * 31 + dayIndex * 7 + slotIndex * 3;
+      for (const char of stranger.id) hash = (hash * 33 + char.charCodeAt(0)) % 1000003;
+      if (hash % 3 === 0) continue;
+    }
+    placed.push({ stranger, x: station.x, y: station.y, facing: station.facing });
+  }
+  return placed;
+}
+
+/** The nearest member of staff or visitor you could speak to. */
+export function roomStrangerNear(
+  people: readonly RoomStranger[],
+  position: Position,
+  range = 2.4,
+): RoomStranger | null {
+  let best: RoomStranger | null = null;
+  let bestDistance = range;
+  for (const person of people) {
+    const distance = Math.hypot(person.x - position.x, person.y - position.y);
+    if (distance <= bestDistance) {
+      best = person;
+      bestDistance = distance;
+    }
+  }
+  return best;
 }
 
 /** True when the player is standing on the way out. */

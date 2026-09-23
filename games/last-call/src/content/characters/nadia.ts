@@ -1298,6 +1298,8 @@ export const NADIA: CharacterDef = {
       palette: { primary: '#14212e', secondary: '#1f3547', accent: '#4fd6ff' },
     },
   ],
+  /** Her generated key-art portrait, loaded straight from the render host. */
+  portrait: 'https://d8j0ntlcm91z4.cloudfront.net/user_37NVjOty0iqni6aBd5Kpn88QUhU/hf_20260921_161149_8e80312d-de6f-4a3d-bac9-b82e9334f63a.png',
   palette: {
     hair: '#d8b45c',
     hairShadow: '#8f6f22',

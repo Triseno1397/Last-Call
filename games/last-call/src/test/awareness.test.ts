@@ -9,31 +9,32 @@ function withAwareness(level: number, overrides: Partial<PlayerState> = {}): Pla
 }
 
 describe('what the player can see', () => {
-  it('shows nothing at all to start with', () => {
+  it('shows a bar and a word from the very start, never a blank', () => {
     const visibility = meterVisibility(withAwareness(0), false);
-    expect(visibility).toBe('hidden');
+    expect(visibility).toBe('coarse');
     const readout = readInterest(70, 5, visibility);
-    expect(readout.label).toBeNull();
-    expect(readout.segments).toBeNull();
+    expect(readout.label).toBe('She is enjoying this');
+    expect(readout.segments).toBeGreaterThan(0);
+    expect(readout.delta).toBe('up');
     expect(readout.value).toBeNull();
   });
 
-  it('gives words before it gives bars', () => {
+  it('keeps the numbers back until awareness earns them', () => {
     const readout = readInterest(70, 5, meterVisibility(withAwareness(1), false));
     expect(readout.label).toBe('She is enjoying this');
-    expect(readout.segments).toBeNull();
+    expect(readout.segments).toBeGreaterThan(0);
     expect(readout.value).toBeNull();
   });
 
   it('gives bars and a direction before it gives numbers', () => {
-    const readout = readComfort(48, -3, meterVisibility(withAwareness(2), false));
+    const readout = readComfort(48, -3, meterVisibility(withAwareness(1), false));
     expect(readout.segments).toBeGreaterThan(0);
     expect(readout.value).toBeNull();
     expect(readout.delta).toBe('down');
   });
 
-  it('gives numbers at level three', () => {
-    const readout = readInterest(48, 3, meterVisibility(withAwareness(3), false));
+  it('gives numbers from level two', () => {
+    const readout = readInterest(48, 3, meterVisibility(withAwareness(2), false));
     expect(readout.value).toBe(48);
     expect(readout.delta).toBe('+3');
   });

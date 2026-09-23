@@ -1276,6 +1276,8 @@ export const WREN: CharacterDef = {
       palette: { primary: '#1b1a2e', secondary: '#2f2b4a', accent: '#9a6bff' },
     },
   ],
+  /** Her generated key-art portrait, loaded straight from the render host. */
+  portrait: 'https://d8j0ntlcm91z4.cloudfront.net/user_37NVjOty0iqni6aBd5Kpn88QUhU/hf_20260921_161148_9db43ca0-fb56-463a-89cb-b0b7e16a015b.png',
   palette: {
     hair: '#2a2338',
     hairShadow: '#150f1e',

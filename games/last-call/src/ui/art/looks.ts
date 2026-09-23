@@ -7,6 +7,7 @@
  * sprite code never learns what a vibe is.
  */
 import type { CharacterDef } from '@/types/character';
+import type { StrangerDef } from '@/content/strangers';
 import type { Appearance } from '@/types/player';
 import type { Gender } from '@/content/ids';
 import type { CharacterLook } from '@/ui/art/sprite';
@@ -116,5 +117,22 @@ export function extraLook(index: number, coat: string): CharacterLook {
     accent: darken(coat, 1.25),
     build: EXTRA_BUILDS[index % EXTRA_BUILDS.length]!,
     gender: index % 2 === 0 ? 'man' : 'woman',
+  };
+}
+
+/** Someone who is not the story, drawn as they were written. */
+export function strangerLook(stranger: StrangerDef): CharacterLook {
+  const { look } = stranger;
+  return {
+    hairStyle: look.hairStyle,
+    hair: look.hair,
+    hairShadow: darken(look.hair),
+    skin: look.skin,
+    eyes: '#4a3a52',
+    top: look.top,
+    bottom: look.bottom,
+    accent: look.accent,
+    build: look.build,
+    gender: look.gender,
   };
 }

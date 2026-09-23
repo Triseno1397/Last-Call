@@ -1,5 +1,5 @@
 /**
- * The inside of every venue, as data.
+ * The inside of every building, as data.
  *
  * Walking through a door puts you in a room you can walk around, not on a menu
  * screen: the bar has a counter you stand at and a dartboard in the corner, the
@@ -7,11 +7,16 @@
  * renderer and the collision code need is here, in the same tile coordinates
  * the street uses, so one world renderer draws both.
  *
- * `stations` are where the regulars stand. A character is placed at the station
- * matching her id, or the first free one, so a room never has two people
- * occupying the same stool.
+ * `stations` are where people stand. A lead is placed at the station matching
+ * her id, or the first free one; a station with a `stranger` belongs to the
+ * member of staff or the visitor named, so every shop has someone behind the
+ * counter and, some of the time, someone browsing.
+ *
+ * A prop with an `action` is something you can do rather than just look at:
+ * order a drink, buy a comic, do a set. It costs money or energy and can teach
+ * you something, which is what a place is for.
  */
-import type { CharacterId } from '@/content/ids';
+import type { CharacterId, StatId } from '@/content/ids';
 import type { CityRect, InteriorId } from '@/content/city';
 
 export type FloorKind = 'wood' | 'tile' | 'rubber' | 'rug' | 'stage';
@@ -34,10 +39,31 @@ export type PropKind =
   | 'neon'
   | 'lamp'
   | 'window'
-  | 'mirror';
+  | 'mirror'
+  | 'cabinet'
+  | 'painting'
+  | 'plinth'
+  | 'fridge'
+  | 'produce'
+  | 'booth'
+  | 'bottles'
+  | 'oven';
 
 export interface InteriorFloor extends CityRect {
   kind: FloorKind;
+}
+
+/** Something you can do at a fixture, beyond reading its line. */
+export interface PropAction {
+  id: string;
+  /** Button label: "Order a pint". */
+  label: string;
+  cost: number;
+  /** Energy change. Eating restores it; a set at the rack spends it. */
+  energy?: number;
+  statXp?: { stat: StatId; amount: number };
+  /** What happened, shown once it is done. */
+  line: string;
 }
 
 export interface InteriorProp extends CityRect {
@@ -49,14 +75,18 @@ export interface InteriorProp extends CityRect {
   label?: string;
   /** What you get when you look at it. */
   line?: string;
+  /** What you can do here. */
+  action?: PropAction;
 }
 
 export interface InteriorStation {
   /** The regular who stands here, when she is in. */
   character?: CharacterId;
+  /** The member of staff or visitor who stands here (see content/strangers). */
+  stranger?: string;
   x: number;
   y: number;
-  /** Which way she faces while she waits. */
+  /** Which way they face while they wait. */
   facing: 'down' | 'up' | 'left' | 'right';
 }
 
@@ -87,12 +117,15 @@ const BAR: InteriorDef = {
     { kind: 'stage', x: 15, y: 2, w: 6, h: 4 },
   ],
   props: [
-    { kind: 'counter', x: 2, y: 4, w: 9, h: 2, label: 'the bar' },
+    {
+      kind: 'counter', x: 2, y: 4, w: 9, h: 2, label: 'the bar',
+      action: { id: 'bar_pint', label: 'Order a pint', cost: 6, energy: 3, statXp: { stat: 'confidence', amount: 3 }, line: 'A pint, a nod from the barback, and the first cold mouthful. The room gets a little easier to stand in.' },
+    },
+    { kind: 'bottles', x: 2, y: 2.3, w: 9, h: 1, passable: true },
     { kind: 'stool', x: 2, y: 6.6, w: 1, h: 1 },
     { kind: 'stool', x: 4, y: 6.6, w: 1, h: 1 },
     { kind: 'stool', x: 6, y: 6.6, w: 1, h: 1 },
     { kind: 'stool', x: 8, y: 6.6, w: 1, h: 1 },
-    { kind: 'mirror', x: 2, y: 2.4, w: 9, h: 1, passable: true },
     { kind: 'neon', x: 13, y: 2.3, w: 4, h: 1, passable: true, label: 'LAST CALL' },
     { kind: 'dartboard', x: 19.5, y: 7, w: 1.4, h: 1.4, passable: true, label: 'darts' },
     { kind: 'table', x: 4, y: 10, w: 2, h: 2 },
@@ -104,6 +137,8 @@ const BAR: InteriorDef = {
   stations: [
     { character: 'sable', x: 6.5, y: 3.2, facing: 'down' },
     { character: 'nadia', x: 16.5, y: 8.4, facing: 'left' },
+    { stranger: 'barback', x: 9.4, y: 3.2, facing: 'down' },
+    { stranger: 'darts_regular', x: 18.6, y: 9.6, facing: 'right' },
     { x: 3.2, y: 7.8, facing: 'up' },
     { x: 17.5, y: 4.4, facing: 'down' },
   ],
@@ -121,12 +156,18 @@ const BOOKSHOP: InteriorDef = {
     { kind: 'rug', x: 12, y: 7, w: 5, h: 4 },
   ],
   props: [
-    { kind: 'shelf', x: 2, y: 2.4, w: 3, h: 1.4, label: 'poetry, shelved wrong' },
+    {
+      kind: 'shelf', x: 2, y: 2.4, w: 3, h: 1.4, label: 'poetry, shelved wrong',
+      action: { id: 'books_buy', label: 'Buy a book', cost: 8, statXp: { stat: 'culture', amount: 10 }, line: 'A slim thing with a cracked spine and somebody else’s pencil in the margins. Theirs are better than the poems.' },
+    },
     { kind: 'shelf', x: 6, y: 2.4, w: 3, h: 1.4 },
     { kind: 'shelf', x: 10, y: 2.4, w: 3, h: 1.4 },
     { kind: 'shelf', x: 2, y: 6, w: 1.4, h: 4 },
     { kind: 'shelf', x: 6, y: 6, w: 1.4, h: 4 },
-    { kind: 'counter', x: 14, y: 2.4, w: 4, h: 1.6, label: 'the coffee counter' },
+    {
+      kind: 'counter', x: 14, y: 2.4, w: 4, h: 1.6, label: 'the coffee counter',
+      action: { id: 'books_coffee', label: 'Get a coffee', cost: 3, energy: 8, line: 'Filter coffee in a mug that says WORLD’S OKAYEST BOOKSELLER. It is, somehow, excellent.' },
+    },
     { kind: 'armchair', x: 13.5, y: 8.4, w: 1.6, h: 1.6, label: 'the good armchair' },
     { kind: 'armchair', x: 15.6, y: 8.4, w: 1.6, h: 1.6 },
     { kind: 'table', x: 14.4, y: 6.4, w: 1.6, h: 1.4 },
@@ -136,7 +177,9 @@ const BOOKSHOP: InteriorDef = {
   ],
   stations: [
     { character: 'wren', x: 13.4, y: 6.6, facing: 'down' },
-    { x: 16, y: 4.6, facing: 'down' },
+    { stranger: 'owner_books', x: 15.2, y: 4.6, facing: 'down' },
+    { stranger: 'reader', x: 4.6, y: 8.4, facing: 'left' },
+    { x: 9, y: 8, facing: 'down' },
     { x: 4, y: 5, facing: 'up' },
   ],
 };
@@ -153,20 +196,26 @@ const GYM: InteriorDef = {
     { kind: 'stage', x: 2, y: 3, w: 5, h: 4 },
   ],
   props: [
-    { kind: 'rack', x: 2.4, y: 2.4, w: 2, h: 1.4, label: 'the squat rack' },
+    {
+      kind: 'rack', x: 2.4, y: 2.4, w: 2, h: 1.4, label: 'the squat rack',
+      action: { id: 'gym_set', label: 'Do a set', cost: 0, energy: -12, statXp: { stat: 'fitness', amount: 12 }, line: 'Five reps, then three more you had no business doing. Your legs file a complaint you will read tomorrow.' },
+    },
     { kind: 'rack', x: 5.4, y: 2.4, w: 2, h: 1.4 },
     { kind: 'rack', x: 8.4, y: 2.4, w: 2, h: 1.4 },
     { kind: 'bench', x: 3, y: 8, w: 2.4, h: 1.2 },
     { kind: 'bench', x: 7, y: 8, w: 2.4, h: 1.2 },
     { kind: 'bench', x: 11, y: 8, w: 2.4, h: 1.2 },
     { kind: 'mirror', x: 14, y: 2.4, w: 5, h: 1, passable: true },
-    { kind: 'rack', x: 15.4, y: 6, w: 1.6, h: 3 },
+    { kind: 'counter', x: 14.4, y: 4, w: 4, h: 1.4, label: 'the front desk', line: 'A sign-in sheet, a bowl of protein bars, and a laminated list of things Rae has seen people do to the cable machine.' },
+    { kind: 'rack', x: 15.4, y: 6.6, w: 1.6, h: 3 },
     { kind: 'neon', x: 8, y: 2.2, w: 4, h: 0.8, passable: true, label: 'IRONHAUS' },
     { kind: 'plant', x: 17.8, y: 11, w: 1, h: 1 },
   ],
   stations: [
     { character: 'nadia', x: 9.4, y: 6.4, facing: 'down' },
     { character: 'wren', x: 5, y: 10, facing: 'up' },
+    { stranger: 'gym_desk', x: 16.4, y: 5.8, facing: 'down' },
+    { stranger: 'lifter', x: 12.2, y: 10, facing: 'up' },
     { x: 13, y: 4.4, facing: 'down' },
   ],
 };
@@ -183,7 +232,10 @@ const CAFE: InteriorDef = {
     { kind: 'rug', x: 9, y: 6, w: 5, h: 3 },
   ],
   props: [
-    { kind: 'counter', x: 2, y: 2.4, w: 7, h: 1.8, label: 'the counter' },
+    {
+      kind: 'counter', x: 2, y: 2.4, w: 7, h: 1.8, label: 'the counter',
+      action: { id: 'cafe_flat_white', label: 'Order a flat white', cost: 4, energy: 10, line: 'Milo draws a fern in the foam without looking. You drink it too fast, as everyone does.' },
+    },
     { kind: 'espresso', x: 3, y: 2.2, w: 1.6, h: 1, passable: true, label: 'the espresso machine' },
     { kind: 'pastry_case', x: 6, y: 2.2, w: 2.4, h: 1, passable: true, label: 'the pastry case' },
     { kind: 'table', x: 2.4, y: 6, w: 1.6, h: 1.4 },
@@ -198,7 +250,9 @@ const CAFE: InteriorDef = {
     { kind: 'poster', x: 12, y: 2.3, w: 1.4, h: 1, passable: true, label: 'the noticeboard', line: 'Lost cat, found cat, a band that needs a drummer, and a flat that is definitely a cupboard.' },
   ],
   stations: [
-    { x: 5, y: 4.6, facing: 'down' },
+    { stranger: 'barista', x: 7.6, y: 4.8, facing: 'down' },
+    { stranger: 'laptop', x: 13.6, y: 9.6, facing: 'left' },
+    { x: 4.6, y: 4.8, facing: 'down' },
     { x: 12.4, y: 5.4, facing: 'down' },
   ],
 };
@@ -216,21 +270,281 @@ const RECORDS: InteriorDef = {
   ],
   props: [
     { kind: 'counter', x: 11, y: 2.4, w: 5, h: 1.6, label: 'the counter' },
-    { kind: 'crate', x: 2, y: 3, w: 3, h: 1.6, label: 'NEW IN' },
+    {
+      kind: 'crate', x: 2, y: 3, w: 3, h: 1.6, label: 'NEW IN',
+      action: { id: 'records_buy', label: 'Buy a record', cost: 12, statXp: { stat: 'culture', amount: 8 }, line: 'Something on a label you have never heard of, chosen by the sleeve. Bea nods once, which is the review.' },
+    },
     { kind: 'crate', x: 6, y: 3, w: 3, h: 1.6, label: 'SOUL / FUNK' },
     { kind: 'crate', x: 2, y: 6, w: 3, h: 1.6, label: 'JAZZ' },
     { kind: 'crate', x: 6, y: 6, w: 3, h: 1.6, label: 'ELECTRONIC' },
     { kind: 'crate', x: 2, y: 9, w: 3, h: 1.6, label: 'BARGAIN', line: 'Everything two pounds. Some of it is worth more; some of it is why.' },
     { kind: 'crate', x: 6, y: 9, w: 3, h: 1.6, label: 'LOCAL' },
     { kind: 'shelf', x: 10, y: 5.4, w: 1.4, h: 5 },
-    { kind: 'listening_post', x: 13, y: 5.4, w: 1.4, h: 1.4, label: 'the listening post', line: 'One pair of headphones, held together with tape. Whatever is on it is always better than what you came in for.' },
+    {
+      kind: 'listening_post', x: 13, y: 5.4, w: 1.4, h: 1.4, label: 'the listening post',
+      line: 'One pair of headphones, held together with tape. Whatever is on it is always better than what you came in for.',
+      action: { id: 'records_listen', label: 'Put the headphones on', cost: 0, energy: 4, statXp: { stat: 'culture', amount: 3 }, line: 'Four minutes of something with a bassline that makes the shop go quiet. You will hum it for a week.' },
+    },
     { kind: 'poster', x: 15, y: 2.2, w: 1.4, h: 1, passable: true, label: 'gig posters', line: 'Three layers deep. The band from the middle layer is playing the bar on Friday.' },
     { kind: 'neon', x: 5, y: 2.2, w: 4, h: 0.9, passable: true, label: 'STATIC' },
     { kind: 'plant', x: 16, y: 10.6, w: 1, h: 1 },
   ],
   stations: [
-    { x: 13.4, y: 4.4, facing: 'down' },
-    { x: 4, y: 8, facing: 'up' },
+    { stranger: 'record_clerk', x: 13.4, y: 4.4, facing: 'down' },
+    { stranger: 'digger', x: 4, y: 8, facing: 'up' },
+    { x: 8, y: 10.8, facing: 'up' },
+    { x: 11.8, y: 10.8, facing: 'up' },
+  ],
+};
+
+const NIGHTJAR: InteriorDef = {
+  venue: 'nightjar',
+  width: 20,
+  height: 14,
+  spawn: { x: 10, y: 11.4 },
+  exit: { x: 10, y: 12.4 },
+  palette: { wall: '#141a33', trim: '#22304d', glow: '#4fd6ff' },
+  floors: [
+    { kind: 'wood', x: 1, y: 2, w: 18, h: 11 },
+    { kind: 'rug', x: 12, y: 7, w: 5, h: 4 },
+  ],
+  props: [
+    {
+      kind: 'counter', x: 2, y: 4, w: 8, h: 1.8, label: 'the bar',
+      action: { id: 'nightjar_cocktail', label: 'Order a cocktail', cost: 12, energy: 4, statXp: { stat: 'style', amount: 6 }, line: 'Lucian builds something smoky with a twist of orange peel and does not tell you what it is. It is very good, and you sit up straighter.' },
+    },
+    { kind: 'bottles', x: 2, y: 2.3, w: 8, h: 1, passable: true, label: 'the back bar', line: 'Two hundred bottles lit from below. Lucian knows what is in every one and will tell you about exactly three.' },
+    { kind: 'stool', x: 2, y: 6.4, w: 1, h: 1 },
+    { kind: 'stool', x: 4, y: 6.4, w: 1, h: 1 },
+    { kind: 'stool', x: 6, y: 6.4, w: 1, h: 1 },
+    { kind: 'stool', x: 8, y: 6.4, w: 1, h: 1 },
+    { kind: 'neon', x: 12, y: 2.3, w: 5, h: 1, passable: true, label: 'NIGHTJAR' },
+    { kind: 'booth', x: 13, y: 4.6, w: 4, h: 1.6, label: 'the corner booth', line: 'Velvet, low light, and a candle that has been the same height for a year. Where the good conversations happen.' },
+    { kind: 'table', x: 14, y: 7.2, w: 2, h: 1.4 },
+    { kind: 'booth', x: 13, y: 9.2, w: 4, h: 1.6 },
+    { kind: 'lamp', x: 11, y: 6, w: 1, h: 1, passable: true },
+    { kind: 'table', x: 4, y: 9.4, w: 2, h: 1.6 },
+    { kind: 'table', x: 8, y: 9.4, w: 2, h: 1.6 },
+    { kind: 'plant', x: 17.6, y: 11, w: 1, h: 1 },
+  ],
+  stations: [
+    { stranger: 'mixologist', x: 5, y: 3.2, facing: 'down' },
+    { stranger: 'birthday', x: 3.2, y: 7.8, facing: 'up' },
+    { x: 7.4, y: 8.2, facing: 'up' },
+    { x: 16.4, y: 8.8, facing: 'left' },
+  ],
+};
+
+const BASILICO: InteriorDef = {
+  venue: 'basilico',
+  width: 20,
+  height: 14,
+  spawn: { x: 10, y: 11.4 },
+  exit: { x: 10, y: 12.4 },
+  palette: { wall: '#3a2418', trim: '#5a3a26', glow: '#ffb45a' },
+  floors: [
+    { kind: 'tile', x: 1, y: 2, w: 18, h: 11 },
+    { kind: 'rug', x: 6, y: 6, w: 8, h: 4 },
+  ],
+  props: [
+    {
+      kind: 'counter', x: 12, y: 2.6, w: 6, h: 1.6, label: 'the pass',
+      action: { id: 'basilico_special', label: 'Order the special', cost: 18, energy: 25, line: 'Sofia brings the special without asking what you want, which is correct. Ragù, four hours in. You will think about it tomorrow.' },
+    },
+    { kind: 'oven', x: 18, y: 2.3, w: 1.6, h: 1.6, label: 'the oven', line: 'Wood-fired, older than the building, and the reason the whole street smells like this at seven.' },
+    { kind: 'bottles', x: 2, y: 2.3, w: 5, h: 1, passable: true, label: 'the wine wall', line: 'Sofia’s uncle’s vineyard. Sofia’s other uncle’s vineyard. A feud, in bottles.' },
+    { kind: 'table', x: 2.4, y: 5, w: 1.8, h: 1.6 },
+    { kind: 'table', x: 2.4, y: 8.4, w: 1.8, h: 1.6 },
+    { kind: 'table', x: 6.4, y: 6.6, w: 2, h: 1.6 },
+    { kind: 'table', x: 11, y: 6.6, w: 2, h: 1.6, label: 'the table for two', line: 'Set for two. Candle, bread, a chair pulled out and left that way.' },
+    { kind: 'table', x: 15.6, y: 6, w: 1.8, h: 1.6 },
+    { kind: 'table', x: 15.6, y: 9.4, w: 1.8, h: 1.6 },
+    { kind: 'table', x: 6.4, y: 9.8, w: 2, h: 1.6 },
+    { kind: 'plant', x: 1.2, y: 11, w: 1, h: 1 },
+    { kind: 'plant', x: 18, y: 11, w: 1, h: 1 },
+    { kind: 'lamp', x: 9, y: 4.6, w: 1, h: 1, passable: true },
+    { kind: 'lamp', x: 14, y: 8.6, w: 1, h: 1, passable: true },
+    { kind: 'window', x: 13, y: 12.4, w: 5, h: 1, passable: true },
+  ],
+  stations: [
+    { stranger: 'waiter', x: 14, y: 4.8, facing: 'down' },
+    { stranger: 'date_night', x: 12.2, y: 8.8, facing: 'left' },
+    { x: 4.8, y: 6, facing: 'left' },
+    { x: 17.8, y: 8.2, facing: 'left' },
+  ],
+};
+
+const ARCADE: InteriorDef = {
+  venue: 'pixel_palace',
+  width: 20,
+  height: 13,
+  spawn: { x: 10, y: 10.4 },
+  exit: { x: 10, y: 11.4 },
+  palette: { wall: '#1a0f2a', trim: '#2e1d48', glow: '#ff5fa8' },
+  floors: [{ kind: 'tile', x: 1, y: 2, w: 18, h: 10 }],
+  props: [
+    {
+      kind: 'cabinet', x: 2, y: 2.4, w: 1.8, h: 1.6, label: 'STREET BRAWLER II', colour: '#c9313f',
+      action: { id: 'arcade_brawler', label: 'Play a round', cost: 1, energy: -3, statXp: { stat: 'confidence', amount: 4 }, line: 'You pick the big slow one, lose the first round, and win the second on a move you did not know you knew.' },
+    },
+    {
+      kind: 'cabinet', x: 4.2, y: 2.4, w: 1.8, h: 1.6, label: 'GALAXY RAID', colour: '#4fd6ff',
+      action: { id: 'arcade_raid', label: 'Play a round', cost: 1, energy: -3, statXp: { stat: 'confidence', amount: 4 }, line: 'Three lives, a boss with too many eyes, and initials on the high-score table that are almost yours.' },
+    },
+    {
+      kind: 'cabinet', x: 6.4, y: 2.4, w: 1.8, h: 1.6, label: 'PUCK RUNNER', colour: '#ffce6b',
+      action: { id: 'arcade_puck', label: 'Play a round', cost: 1, energy: -3, statXp: { stat: 'humor', amount: 4 }, line: 'A maze, a ghost, a noise you will hear in your sleep. You laugh out loud when it gets you, which is the point.' },
+    },
+    {
+      kind: 'cabinet', x: 8.6, y: 2.4, w: 1.8, h: 1.6, label: 'BEAT DROP', colour: '#9a6bff',
+      action: { id: 'arcade_dance', label: 'Play a round', cost: 1, energy: -6, statXp: { stat: 'fitness', amount: 5 }, line: 'The arrows come faster than your feet. By the last chorus half the arcade is watching and you have stopped caring.' },
+    },
+    { kind: 'neon', x: 11, y: 2.3, w: 3, h: 0.9, passable: true, label: 'PIXEL' },
+    { kind: 'counter', x: 14, y: 2.6, w: 4.4, h: 1.5, label: 'the prize counter', line: 'Four thousand tickets for a keyring. Nobody has ever had four thousand tickets. The keyring is dusty.' },
+    {
+      kind: 'cabinet', x: 2, y: 7, w: 1.8, h: 1.6, label: 'AIR HOCKEY', colour: '#3fbf85',
+      action: { id: 'arcade_hockey', label: 'Play a round', cost: 1, energy: -4, statXp: { stat: 'confidence', amount: 3 }, line: 'The puck leaves the table twice. You win seven to five against nobody, which still counts.' },
+    },
+    {
+      kind: 'cabinet', x: 5, y: 7, w: 1.8, h: 1.6, label: 'THE CLAW', colour: '#ff9ac2',
+      action: { id: 'arcade_claw', label: 'Have a go', cost: 2, energy: -1, statXp: { stat: 'charm', amount: 2 }, line: 'The claw closes on a plush octopus, lifts it an inch, and lets go. It always lets go. You are, briefly, philosophical about this.' },
+    },
+    { kind: 'bench', x: 8.5, y: 7.2, w: 2.4, h: 1.2 },
+    {
+      kind: 'cabinet', x: 13, y: 7, w: 1.8, h: 1.6, label: 'PINBALL', colour: '#e2a03f',
+      action: { id: 'arcade_pinball', label: 'Play a round', cost: 1, energy: -2, statXp: { stat: 'style', amount: 3 }, line: 'Multiball. Lights. A tilt warning you deserved. The machine says GOOD SHOT in a voice from 1991.' },
+    },
+    {
+      kind: 'cabinet', x: 16, y: 7, w: 1.8, h: 1.6, label: 'RHYTHM STAR', colour: '#4fd6ff',
+      action: { id: 'arcade_rhythm', label: 'Play a round', cost: 1, energy: -3, statXp: { stat: 'humor', amount: 3 }, line: 'Two plastic drums and a song about a fox. You hit every note in the chorus and none in the verse.' },
+    },
+    { kind: 'plant', x: 18, y: 9.6, w: 1, h: 1 },
+  ],
+  stations: [
+    { stranger: 'arcade_attendant', x: 16, y: 4.8, facing: 'down' },
+    { stranger: 'gamer', x: 3, y: 9.4, facing: 'up' },
+    { x: 14, y: 9.4, facing: 'up' },
+    { x: 7.4, y: 5, facing: 'down' },
+  ],
+};
+
+const COMICS: InteriorDef = {
+  venue: 'panels',
+  width: 18,
+  height: 13,
+  spawn: { x: 9, y: 10.4 },
+  exit: { x: 9, y: 11.4 },
+  palette: { wall: '#1a2233', trim: '#2a3a55', glow: '#ffce6b' },
+  floors: [
+    { kind: 'tile', x: 1, y: 2, w: 16, h: 10 },
+    { kind: 'rug', x: 11, y: 7, w: 4, h: 3 },
+  ],
+  props: [
+    {
+      kind: 'shelf', x: 2, y: 2.4, w: 4, h: 1.4, label: 'new releases',
+      action: { id: 'panels_comic', label: 'Buy a comic', cost: 5, statXp: { stat: 'culture', amount: 5 }, line: 'Issue one of something with a cover that looks like a poster. You read it standing up before you reach the door.' },
+    },
+    { kind: 'shelf', x: 7, y: 2.4, w: 4, h: 1.4, label: 'the manga wall', line: 'Forty volumes of one story, spines in order, one gap where volume nineteen should be. Everyone is looking for nineteen.' },
+    { kind: 'counter', x: 12, y: 2.6, w: 4.4, h: 1.5, label: 'the counter' },
+    {
+      kind: 'crate', x: 2, y: 6, w: 3, h: 1.6, label: 'BACK ISSUES £1', colour: '#f0e6d8',
+      action: { id: 'panels_dig', label: 'Dig through the longboxes', cost: 0, energy: -3, statXp: { stat: 'culture', amount: 3 }, line: 'An hour disappears. You come up with a water-damaged issue of something cancelled in 1994 and a strong opinion about it.' },
+    },
+    { kind: 'crate', x: 2, y: 9, w: 3, h: 1.6, label: 'INDIE', colour: '#f0e6d8' },
+    { kind: 'shelf', x: 6.5, y: 6, w: 1.4, h: 4, label: 'the spinner rack' },
+    { kind: 'poster', x: 15, y: 2.2, w: 1.4, h: 1, passable: true, label: 'the wall of covers', line: 'Signed, framed, and one of them is upside down on purpose. Ask Halle why. Then ask him to stop.' },
+    { kind: 'armchair', x: 12, y: 8, w: 1.6, h: 1.6, label: 'the reading chair', line: 'One chair, one rule: buy something eventually.' },
+    { kind: 'plant', x: 16, y: 10, w: 1, h: 1 },
+  ],
+  stations: [
+    { stranger: 'comics_clerk', x: 14, y: 4.8, facing: 'down' },
+    { stranger: 'collector', x: 4, y: 8.2, facing: 'up' },
+    { x: 9.2, y: 5, facing: 'left' },
+  ],
+};
+
+const GALLERY: InteriorDef = {
+  venue: 'meridian_gallery',
+  width: 22,
+  height: 14,
+  spawn: { x: 11, y: 11.4 },
+  exit: { x: 11, y: 12.4 },
+  palette: { wall: '#2a2438', trim: '#3a3450', glow: '#e4d9ff' },
+  floors: [{ kind: 'tile', x: 1, y: 2, w: 20, h: 11 }],
+  props: [
+    {
+      kind: 'painting', x: 2, y: 2.3, w: 2.4, h: 1.2, label: 'Harbour, After', colour: '#2b5f7a',
+      action: { id: 'gallery_harbour', label: 'Take it in', cost: 0, energy: -2, statXp: { stat: 'culture', amount: 4 }, line: 'Grey water, one orange buoy, and the feeling of a place after everyone has gone home. You stand there longer than you meant to.' },
+    },
+    {
+      kind: 'painting', x: 5.5, y: 2.3, w: 2.4, h: 1.2, label: 'Study in Cadmium', colour: '#c9313f',
+      action: { id: 'gallery_cadmium', label: 'Take it in', cost: 0, energy: -2, statXp: { stat: 'culture', amount: 4 }, line: 'Red on red on red. Up close it is a hundred colours. From the bench it is one shout.' },
+    },
+    {
+      kind: 'painting', x: 9, y: 2.3, w: 2.4, h: 1.2, label: 'Untitled (Bus Stop)', colour: '#8fa3bd',
+      action: { id: 'gallery_busstop', label: 'Take it in', cost: 0, energy: -2, statXp: { stat: 'culture', amount: 4 }, line: 'It is the bus stop on the main street. It is exactly the bus stop. You will never wait there the same way again.' },
+    },
+    {
+      kind: 'painting', x: 12.5, y: 2.3, w: 2.4, h: 1.2, label: 'Meridian, 3 a.m.', colour: '#3a2a5a',
+      action: { id: 'gallery_meridian', label: 'Take it in', cost: 0, energy: -2, statXp: { stat: 'culture', amount: 4 }, line: 'The square at night, the fountain lit, one figure on the bench. You check, and it is not you. Probably.' },
+    },
+    {
+      kind: 'painting', x: 16, y: 2.3, w: 2.4, h: 1.2, label: 'Self-Portrait as a Weather System', colour: '#e2a03f',
+      action: { id: 'gallery_weather', label: 'Take it in', cost: 0, energy: -2, statXp: { stat: 'culture', amount: 4 }, line: 'A face made of fronts and isobars. Anselm says it is the best thing in the building and she is right.' },
+    },
+    { kind: 'plinth', x: 6, y: 7, w: 1.4, h: 1.4, label: 'the sculpture', line: 'Bronze, small, a hand holding a smaller hand. The label says DO NOT TOUCH and the bronze is polished where everyone has.' },
+    { kind: 'plinth', x: 14, y: 7, w: 1.4, h: 1.4, label: 'the other sculpture', line: 'A shopping trolley, cast in plaster, half sunk into the plinth. You have met this trolley.' },
+    { kind: 'bench', x: 9.4, y: 8.6, w: 3.2, h: 1.2, label: 'the bench', line: 'Leather, no back, placed at exactly the distance the paintings want you to sit.' },
+    {
+      kind: 'counter', x: 18.5, y: 3, w: 2.6, h: 1.4, label: 'the desk',
+      action: { id: 'gallery_postcard', label: 'Buy a postcard', cost: 3, statXp: { stat: 'culture', amount: 2 }, line: 'Harbour, After, in postcard form. You will not send it. It goes on the fridge and stays there for years.' },
+    },
+    { kind: 'lamp', x: 4, y: 5.6, w: 1, h: 1, passable: true },
+    { kind: 'lamp', x: 17, y: 5.6, w: 1, h: 1, passable: true },
+    { kind: 'plant', x: 1.2, y: 11, w: 1, h: 1 },
+    { kind: 'plant', x: 20, y: 11, w: 1, h: 1 },
+  ],
+  stations: [
+    { stranger: 'gallery_guide', x: 19.6, y: 5.2, facing: 'down' },
+    { stranger: 'critic', x: 10.2, y: 4.6, facing: 'up' },
+    { x: 3.2, y: 5, facing: 'up' },
+    { x: 15, y: 9.8, facing: 'left' },
+  ],
+};
+
+const MARKET: InteriorDef = {
+  venue: 'fresh_market',
+  width: 18,
+  height: 13,
+  spawn: { x: 9, y: 10.4 },
+  exit: { x: 9, y: 11.4 },
+  palette: { wall: '#1a2e2a', trim: '#245046', glow: '#3fbf85' },
+  floors: [{ kind: 'tile', x: 1, y: 2, w: 16, h: 10 }],
+  props: [
+    {
+      kind: 'fridge', x: 2, y: 2.4, w: 5, h: 1.4, label: 'the meal deals',
+      action: { id: 'market_meal', label: 'Grab a meal deal', cost: 5, energy: 12, line: 'Sandwich, crisps, a drink that is mostly sugar. Eaten on the wall outside. Not a good meal; a great one.' },
+    },
+    { kind: 'fridge', x: 8, y: 2.4, w: 4, h: 1.4, label: 'the drinks fridge', line: 'Hums like it has something to say. Every energy drink in the world and one lonely oat milk.' },
+    { kind: 'counter', x: 13, y: 2.6, w: 3.6, h: 1.5, label: 'the checkout', line: 'Unexpected item in bagging area. There is never an unexpected item. It just likes saying it.' },
+    {
+      kind: 'produce', x: 2, y: 6, w: 3, h: 1.6, label: 'fruit and veg',
+      action: { id: 'market_groceries', label: 'Buy groceries', cost: 9, energy: 6, statXp: { stat: 'fitness', amount: 3 }, line: 'Actual vegetables. A whole plan for the week. You feel like an adult for the length of the walk home.' },
+    },
+    { kind: 'produce', x: 6, y: 6, w: 3, h: 1.6, label: 'the good bread', colour: '#d8b06a', line: 'Baked round the corner, gone by ten. If there is one left, it is a sign.' },
+    { kind: 'shelf', x: 10.5, y: 6, w: 1.4, h: 4, colour: '#3b4a5a', label: 'the tinned aisle', line: 'Beans, more beans, and one tin of something with a fish on it that has been here since you moved in.' },
+    { kind: 'shelf', x: 13.5, y: 6, w: 1.4, h: 4, colour: '#3b4a5a' },
+    {
+      kind: 'produce', x: 2, y: 9, w: 3, h: 1.6, label: 'the flowers', colour: '#ff9ac2',
+      action: { id: 'market_flowers', label: 'Buy flowers', cost: 7, statXp: { stat: 'charm', amount: 4 }, line: 'Something yellow, wrapped in paper. You carry them down the street and three strangers smile at you for no reason.' },
+    },
+    { kind: 'crate', x: 6, y: 9, w: 3, h: 1.6, label: 'REDUCED', colour: '#e2a03f', line: 'Yellow stickers. A pineapple for eleven pence. A whole cake, slightly wrong.' },
+    { kind: 'poster', x: 16, y: 2.2, w: 1.4, h: 1, passable: true, label: 'the noticeboard', line: 'Guitar lessons, a lost tortoise, and a card that just says CALL ME with a number and no name.' },
+  ],
+  stations: [
+    { stranger: 'checkout', x: 14.6, y: 4.8, facing: 'down' },
+    { stranger: 'shopper', x: 4.5, y: 8.2, facing: 'up' },
+    { x: 12.2, y: 8, facing: 'left' },
   ],
 };
 
@@ -240,4 +554,10 @@ export const INTERIORS: Readonly<Record<InteriorId, InteriorDef>> = {
   ironhaus: GYM,
   copper_kettle: CAFE,
   static_records: RECORDS,
+  nightjar: NIGHTJAR,
+  basilico: BASILICO,
+  pixel_palace: ARCADE,
+  panels: COMICS,
+  meridian_gallery: GALLERY,
+  fresh_market: MARKET,
 };

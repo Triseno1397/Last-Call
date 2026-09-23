@@ -197,4 +197,10 @@ export interface EncounterState {
   lastComfortDelta: number;
   openingBonus: number;
   busy: boolean;
+  /**
+   * What the player just said, while her reply is still in flight. Shown over
+   * his head the moment he says it rather than when the turn resolves; the
+   * beat list only gains the line once the provider answers.
+   */
+  pending?: string;
 }

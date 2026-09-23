@@ -10,6 +10,8 @@ import { energyReadout } from '@/state/selectors';
 import type { StreetPerson } from '@/engine/city';
 import type { CityProp, InteriorId } from '@/content/city';
 import type { InteriorProp } from '@/content/interiors';
+import { backdropFor } from '@/content/backdrops';
+import { getStranger, strangerFor } from '@/content/strangers';
 import {
   doorNear,
   doorState,
@@ -27,17 +29,20 @@ import {
   propNear,
   roomPeople,
   roomPersonNear,
+  roomStrangerNear,
+  roomStrangers,
 } from '@/engine/interior';
 import { paintRoom } from '@/ui/art/room';
 import { paintLampLight, paintStreet } from '@/ui/art/street';
 import { readComfort, readInterest, meterVisibility } from '@/engine/awareness';
 import { drawMeterPanel } from '@/ui/art/bubble';
 import { useGameStore } from '@/state/gameStore';
-import { characterLook, extraLook, playerLook } from '@/ui/art/looks';
+import { characterLook, extraLook, playerLook, strangerLook } from '@/ui/art/looks';
 import { drawCharacter, facingFrom, type Facing } from '@/ui/art/sprite';
 import { drawSpeechBubble, drawThinking } from '@/ui/art/bubble';
 import { TalkBar } from '@/ui/components/TalkBar';
 import { ChatBar } from '@/ui/components/ChatBar';
+import { ConversationPanel } from '@/ui/components/ConversationPanel';
 import { Button } from '@/ui/components/Button';
 import { Meter } from '@/ui/components/Meter';
 
@@ -68,10 +73,38 @@ const PLACE_INFO: Readonly<Record<string, { name: string; blurb: string }>> = {
     name: 'Static',
     blurb: 'Crates to dig through, one listening post, and a staff pick you will not agree with.',
   },
+  nightjar: {
+    name: 'Nightjar',
+    blurb: 'Low light, a back bar two hundred bottles deep, and a corner booth where the good conversations happen.',
+  },
+  basilico: {
+    name: 'Basilico',
+    blurb: 'A family trattoria with a wood oven, a wine wall and a special nobody has ever refused.',
+  },
+  pixel_palace: {
+    name: 'Pixel Palace',
+    blurb: 'Eight cabinets, one claw machine, and a high-score table with a grudge on it.',
+  },
+  panels: {
+    name: 'Panels',
+    blurb: 'New releases, a manga wall, longboxes of back issues, and one reading chair with a rule.',
+  },
+  meridian_gallery: {
+    name: 'Meridian Gallery',
+    blurb: 'Five paintings, two sculptures, a bench at exactly the right distance, and someone who will argue with you about all of it.',
+  },
+  fresh_market: {
+    name: 'Fresh Market',
+    blurb: 'The late shop: meal deals, the good bread, flowers by the door, and a till that has opinions.',
+  },
+  street: {
+    name: 'The block',
+    blurb: 'Two streets, a square, a park and a canal. Everyone out here is someone.',
+  },
 };
 
-function roomInfo(id: InteriorId): { name: string; blurb: string } {
-  if (isVenue(id)) return { name: VENUES[id].name, blurb: VENUES[id].blurb };
+function roomInfo(id: InteriorId | 'street'): { name: string; blurb: string } {
+  if (id !== 'street' && isVenue(id)) return { name: VENUES[id].name, blurb: VENUES[id].blurb };
   return PLACE_INFO[id] ?? { name: id, blurb: '' };
 }
 
@@ -95,6 +128,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
   const interior = useGameStore((store) => store.interior);
   const smallTalk = useGameStore((store) => store.smallTalk);
   const talkToStranger = useGameStore((store) => store.talkToStranger);
+  const useFixture = useGameStore((store) => store.useFixture);
   const encounter = useGameStore((store) => store.encounter);
   const streetTalk = useGameStore((store) => store.streetTalk);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -135,10 +169,27 @@ export function CityMapScreen({ game }: { game: GameState }) {
    *  nobody should need a button to read a bench. */
   const [nearProp, setNearProp] = useState<CityProp | null>(null);
   const [nearRoomProp, setNearRoomProp] = useState<InteriorProp | null>(null);
+  /** The member of staff or visitor within reach, indoors. */
+  const [nearStranger, setNearStranger] = useState<string | null>(null);
+  /** The last thing you did at a fixture, shown until you walk off. */
+  const [didAt, setDidAt] = useState<{ prop: InteriorProp; line: string } | null>(null);
   const [indoor, setIndoor] = useState<{ characterId: string | null; exit: boolean }>({
     characterId: null,
     exit: false,
   });
+  /**
+   * The establishing shot: the painted still of wherever you have just walked
+   * into, held over the world for a moment so a place is somewhere you have
+   * seen rather than a floor plan. Any key or tap clears it early.
+   */
+  const shotFor = interior ?? 'street';
+  /** Stills that failed to load; the room is drawn without them. */
+  const [brokenShots, setBrokenShots] = useState<readonly string[]>([]);
+  const backdropUrl = backdropFor(shotFor);
+  const backdrop = backdropUrl && !brokenShots.includes(backdropUrl) ? backdropUrl : null;
+  const [shot, setShot] = useState<string | null>(null);
+  const shotUp = useRef(false);
+  shotUp.current = shot !== null;
 
   const energy = energyReadout(game);
   const light = lightLevel(game);
@@ -190,6 +241,17 @@ export function CityMapScreen({ game }: { game: GameState }) {
     facing.current = 'up';
   }, [interior, room]);
 
+  // Show the still of the place on arrival, then let it go after a beat.
+  useEffect(() => {
+    if (!backdrop) {
+      setShot(null);
+      return;
+    }
+    setShot(shotFor);
+    const timer = window.setTimeout(() => setShot(null), reduced ? 1600 : 3200);
+    return () => window.clearTimeout(timer);
+  }, [shotFor, backdrop, reduced]);
+
   // The static layer is painted once; the loop only draws what moves.
   useEffect(() => {
     const world = document.createElement('canvas');
@@ -205,6 +267,12 @@ export function CityMapScreen({ game }: { game: GameState }) {
 
   const interact = useCallback(() => {
     if (room && interior) {
+      // The way out first: standing on OUT and pressing the button should
+      // always leave, whatever is within reach of the door.
+      if (atExit(room, position.current)) {
+        leaveInterior();
+        return;
+      }
       const inRoom = roomPersonNear(roomPeople(game, interior), position.current);
       if (inRoom) {
         void talkOnStreet({
@@ -215,14 +283,23 @@ export function CityMapScreen({ game }: { game: GameState }) {
         });
         return;
       }
-      if (atExit(room, position.current)) leaveInterior();
+      const stranger = roomStrangerNear(roomStrangers(game, interior), position.current);
+      if (stranger) {
+        talkToStranger(stranger.stranger.id);
+        return;
+      }
+      const fixture = propNear(room, position.current);
+      if (fixture?.action) {
+        useFixture(fixture.action);
+        setDidAt({ prop: fixture, line: fixture.action.line });
+      }
       return;
     }
 
     // A passer-by is the simplest case: nobody else competes for them, because
     // they are only ever offered when nothing nearer is in reach.
     if (nearWalker !== null && !nearPerson && !near?.venue && !near?.place) {
-      talkToStranger(nearWalker);
+      talkToStranger(strangerFor(nearWalker).id, nearWalker);
       return;
     }
 
@@ -264,6 +341,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
     talkOnStreet,
     talkToStranger,
     leaveInterior,
+    useFixture,
   ]);
 
   useEffect(() => {
@@ -279,6 +357,13 @@ export function CityMapScreen({ game }: { game: GameState }) {
 
     const down = (event: KeyboardEvent) => {
       if (typing(event)) return;
+      // Any key clears the establishing shot; that press does nothing else,
+      // so a space to dismiss it never also walks you back out of the door.
+      if (shotUp.current) {
+        event.preventDefault();
+        setShot(null);
+        return;
+      }
       const key = event.key.toLowerCase();
       held.current[key] = true;
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) {
@@ -480,6 +565,18 @@ export function CityMapScreen({ game }: { game: GameState }) {
           });
         });
         } else if (interior) {
+          const chatting = smallTalkRef.current;
+          for (const person of roomStrangers(game, interior)) {
+            const talkingTo = chatting?.strangerId === person.stranger.id;
+            drawCharacter(ctx, person.x * TILE, person.y * TILE, strangerLook(person.stranger), {
+              facing: talkingTo
+                ? facingFrom(position.current.x - person.x, position.current.y - person.y, person.facing)
+                : person.facing,
+              phase: 0,
+              moving: false,
+              scale: 0.94,
+            });
+          }
           for (const person of roomPeople(game, interior)) {
             const talkingToHer = talkRef.current.person?.characterId === person.characterId;
             drawCharacter(
@@ -512,10 +609,16 @@ export function CityMapScreen({ game }: { game: GameState }) {
         // screen of its own: her line above her head, yours above yours.
         const chat = smallTalkRef.current;
         if (chat) {
-          const spot = walkerSpots.current.find((entry) => entry.index === chat.walkerIndex);
+          const spot =
+            chat.walkerIndex !== null
+              ? walkerSpots.current.find((entry) => entry.index === chat.walkerIndex)
+              : interior
+                ? roomStrangers(game, interior).find((entry) => entry.stranger.id === chat.strangerId)
+                : undefined;
           if (spot) {
             const theirTop = spot.y * TILE - HEAD_TOP * 0.86;
-            const mine = [...chat.beats].reverse().find((beat) => beat.speaker === 'you');
+            const said = [...chat.beats].reverse().find((beat) => beat.speaker === 'you');
+            const mine = chat.pending ? { text: chat.pending } : said;
             const apart = Math.abs(spot.x - position.current.x) < 5;
             const tilt = apart ? (spot.x >= position.current.x ? 14 : -14) : 0;
             let height = 0;
@@ -546,7 +649,8 @@ export function CityMapScreen({ game }: { game: GameState }) {
           const youX = position.current.x * TILE;
           const herTop = talk.person.y * TILE - HEAD_TOP * 0.92;
           const yourTop = position.current.y * TILE - HEAD_TOP * 1.06;
-          const mine = [...talk.encounter.beats].reverse().find((beat) => beat.speaker === 'you');
+          const said = [...talk.encounter.beats].reverse().find((beat) => beat.speaker === 'you');
+          const mine = talk.encounter.pending ? { text: talk.encounter.pending } : said;
 
           // Standing face to face puts two bubbles in the same patch of sky.
           // Lean them apart, and stack yours above hers rather than through it.
@@ -618,6 +722,11 @@ export function CityMapScreen({ game }: { game: GameState }) {
         const exit = atExit(room, position.current);
         const fixture = propNear(room, position.current);
         setNearRoomProp((current) => (current === fixture ? current : fixture));
+        setDidAt((current) => (current && current.prop !== fixture ? null : current));
+        const stranger = roomStrangerNear(roomStrangers(game, interior), position.current);
+        setNearStranger((current) =>
+          current === (stranger?.stranger.id ?? null) ? current : (stranger?.stranger.id ?? null),
+        );
         setIndoor((current) =>
           current.characterId === (person?.characterId ?? null) && current.exit === exit
             ? current
@@ -694,8 +803,59 @@ export function CityMapScreen({ game }: { game: GameState }) {
         </div>
       </header>
 
-      <div ref={frameRef} className="panel min-h-[42vh] flex-1 overflow-hidden rounded-2xl">
+      {talking && encounter && (
+        <ConversationPanel
+          encounter={encounter}
+          character={getCharacter(streetTalk.characterId)}
+          backdrop={backdrop}
+          game={game}
+        />
+      )}
+      <div
+        ref={frameRef}
+        className={`panel relative min-h-[42vh] flex-1 overflow-hidden rounded-2xl ${talking ? 'hidden' : ''}`}
+      >
         <canvas ref={canvasRef} className="block h-full w-full" />
+        {backdrop && shot === null && (
+          <button
+            type="button"
+            onClick={() => setShot(shotFor)}
+            aria-label={`Look at ${roomInfo(shotFor).name}`}
+            className="tap absolute right-2 top-2 h-12 w-[4.5rem] overflow-hidden rounded-lg border border-ink-500/40 shadow-lg shadow-night-950/60"
+          >
+            <img
+              src={backdrop}
+              alt=""
+              className="h-full w-full object-cover"
+              onError={() => setBrokenShots((current) => [...current, backdrop])}
+            />
+          </button>
+        )}
+        {backdrop && shot !== null && (
+          <button
+            type="button"
+            onClick={() => setShot(null)}
+            className="shot-in absolute inset-0 block h-full w-full cursor-pointer text-left"
+            aria-label="Continue"
+          >
+            <img
+              src={backdrop}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              onError={() => {
+                setBrokenShots((current) => [...current, backdrop]);
+                setShot(null);
+              }}
+            />
+            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-night-950/95 via-night-950/60 to-transparent px-4 pb-3 pt-10">
+              <span className="block font-display text-xl font-bold text-ink-100">{roomInfo(shotFor).name}</span>
+              <span className="block text-xs text-ink-300">{roomInfo(shotFor).blurb}</span>
+              <span className="mt-1 block text-[0.65rem] uppercase tracking-[0.2em] text-ink-500">
+                Any key to carry on
+              </span>
+            </span>
+          </button>
+        )}
       </div>
 
       {talking && encounter ? (
@@ -714,6 +874,30 @@ export function CityMapScreen({ game }: { game: GameState }) {
             </>
           ) : indoor.exit ? (
             <p className="text-xs text-ink-500">The door out. Hit OUT to step back on the street.</p>
+          ) : nearStranger && getStranger(nearStranger) ? (
+            <>
+              <p className="font-display text-sm font-semibold">{getStranger(nearStranger)!.name}</p>
+              <p className="text-xs text-ink-500">
+                {getStranger(nearStranger)!.role === 'staff' ? 'Works here.' : 'Just visiting.'} Hit TALK and say something.
+              </p>
+            </>
+          ) : didAt && didAt.prop === nearRoomProp ? (
+            <>
+              <p className="font-display text-sm font-semibold capitalize">{didAt.prop.label}</p>
+              <p className="text-xs italic text-ink-300">{didAt.line}</p>
+            </>
+          ) : nearRoomProp?.action ? (
+            <>
+              <p className="font-display text-sm font-semibold capitalize">{nearRoomProp.label}</p>
+              <p className="text-xs text-ink-500">
+                {nearRoomProp.line ? <span className="italic text-ink-500">{nearRoomProp.line} </span> : null}
+                <span className="text-gold-400">
+                  {nearRoomProp.action.label}
+                  {nearRoomProp.action.cost > 0 ? ` for $${nearRoomProp.action.cost}` : ''}
+                </span>{' '}
+                — hit USE.
+              </p>
+            </>
           ) : nearRoomProp?.line ? (
             <>
               <p className="font-display text-sm font-semibold capitalize">{nearRoomProp.label}</p>
@@ -721,7 +905,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
             </>
           ) : (
             <p className="text-xs text-ink-600">
-              {roomInfo(interior).blurb} Walk up to someone to talk, or back to the door to leave.
+              {roomInfo(interior).blurb} Walk up to anyone to talk, to a counter or a machine to use it, or back to the door to leave.
             </p>
           )
         ) : nearPerson ? (
@@ -803,17 +987,19 @@ export function CityMapScreen({ game }: { game: GameState }) {
             onClick={interact}
             disabled={
               interior
-                ? !indoor.characterId && !indoor.exit
+                ? !indoor.characterId && !indoor.exit && !nearStranger && !nearRoomProp?.action
                 : !near && !nearPerson && nearWalker === null && !nearProp
             }
             className="tap h-16 w-16 rounded-full border border-neon-400 bg-neon-500/90 text-xs font-bold text-night-950 disabled:border-night-600 disabled:bg-night-700 disabled:text-ink-600"
           >
             {interior
-              ? indoor.characterId
-                ? 'TALK'
-                : indoor.exit
-                  ? 'OUT'
-                  : '—'
+              ? indoor.exit
+                ? 'OUT'
+                : indoor.characterId || nearStranger
+                  ? 'TALK'
+                  : nearRoomProp?.action
+                    ? 'USE'
+                    : '—'
               : nearPerson
                 ? 'TALK'
                 : near?.venue || near?.place

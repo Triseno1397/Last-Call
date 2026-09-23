@@ -9,9 +9,11 @@ import type { VenueId } from '@/content/ids';
  *
  * The block is two streets crossing: a main street east to west, an avenue
  * north to south, a square where they meet the park, and a canal along the
- * bottom with the avenue bridging it. Three venues, two shops you can walk
- * into, and a lot of doors, benches and corners that just have something to
- * say — because a street with nothing to look at is a corridor.
+ * bottom with the avenue bridging it. Three venues, eight places you can walk
+ * into — a café, a record shop, a cocktail bar, a trattoria, an arcade, a
+ * comic shop, a gallery and a supermarket — and a lot of doors, benches and
+ * corners that just have something to say, because a street with nothing to
+ * look at is a corridor.
  */
 export const CITY_WIDTH = 72;
 export const CITY_HEIGHT = 48;
@@ -46,7 +48,15 @@ export interface CityBuilding extends CityRect {
 }
 
 /** Interiors you can walk into that are not venues: no slot cost, no crowd. */
-export type PlaceId = 'copper_kettle' | 'static_records';
+export type PlaceId =
+  | 'copper_kettle'
+  | 'static_records'
+  | 'nightjar'
+  | 'basilico'
+  | 'pixel_palace'
+  | 'panels'
+  | 'meridian_gallery'
+  | 'fresh_market';
 export type InteriorId = VenueId | PlaceId;
 
 export interface CityDoor {
@@ -148,23 +158,25 @@ export const CITY_BUILDINGS: readonly CityBuilding[] = [
 
   // Around the square.
   { id: 'home', name: 'Your building', x: 43, y: 2, w: 10, h: 6, colour: '#2a2440', windows: true, style: 'house', floors: 3 },
-  { id: 'static', name: 'Static', x: 57, y: 12, w: 8, h: 8, colour: '#1f1f2e', windows: true, style: 'shop', awning: '#9a6bff', sign: 'STATIC — records', floors: 2 },
-  { id: 'chemist', name: 'Chemist', x: 66, y: 14, w: 4, h: 6, colour: '#1e3330', windows: true, style: 'shop', awning: '#3fbf85', floors: 2 },
-  { id: 'terrace', name: 'The terrace', x: 57, y: 2, w: 13, h: 8, colour: '#33243a', windows: true, style: 'house', floors: 3 },
+  { id: 'static', name: 'Static', x: 57, y: 12, w: 6, h: 8, colour: '#1f1f2e', windows: true, style: 'shop', awning: '#9a6bff', sign: 'STATIC — records', floors: 2 },
+  { id: 'panels', name: 'Panels', x: 64, y: 14, w: 6, h: 6, colour: '#1e2a3a', windows: true, style: 'shop', awning: '#ffce6b', sign: 'PANELS comics', floors: 2 },
+  { id: 'meridian_gallery', name: 'Meridian Gallery', x: 57, y: 2, w: 13, h: 8, colour: '#2a2438', windows: true, style: 'civic', sign: 'MERIDIAN GALLERY', floors: 2 },
 
   // South row, along the bottom pavement of the main street.
   { id: 'last_call', name: 'Last Call', x: 3, y: 29, w: 10, h: 6, colour: '#3a1b2e', windows: true, style: 'shop', awning: '#ff5fa8', sign: 'LAST CALL', floors: 2 },
   { id: 'noodles', name: 'Slurp', x: 14, y: 29, w: 7, h: 6, colour: '#4a2a1a', windows: true, style: 'shop', awning: '#ffce6b', sign: 'SLURP noodle bar', floors: 2 },
   { id: 'ironhaus', name: 'Ironhaus', x: 22, y: 29, w: 10, h: 6, colour: '#1e2a3a', windows: false, style: 'industrial', sign: 'IRONHAUS', floors: 1 },
-  { id: 'corner_shop', name: 'Corner shop', x: 41, y: 29, w: 5, h: 6, colour: '#2a2338', windows: true, style: 'shop', awning: '#e2a03f', floors: 2 },
+  { id: 'fresh_market', name: 'Fresh Market', x: 41, y: 29, w: 5, h: 6, colour: '#1e3330', windows: true, style: 'shop', awning: '#3fbf85', sign: 'FRESH MARKET', floors: 2 },
   { id: 'cinema', name: 'The Regal', x: 47, y: 29, w: 12, h: 6, colour: '#3a1f3a', windows: false, style: 'civic', sign: 'THE REGAL', floors: 2 },
   { id: 'carpark', name: 'Carpark', x: 60, y: 29, w: 10, h: 6, colour: '#191728', windows: false, style: 'industrial', floors: 3 },
 
   // Along the canal.
-  { id: 'boat_club', name: 'Boat club', x: 4, y: 36, w: 10, h: 6, colour: '#1e3040', windows: true, style: 'house', floors: 1 },
-  { id: 'warehouse', name: 'The old warehouse', x: 16, y: 36, w: 14, h: 6, colour: '#2c2430', windows: false, style: 'industrial', floors: 2 },
+  { id: 'nightjar', name: 'Nightjar', x: 4, y: 36, w: 10, h: 6, colour: '#1a1c33', windows: true, style: 'shop', awning: '#4fd6ff', sign: 'NIGHTJAR cocktails', floors: 2 },
+  { id: 'warehouse', name: 'The old warehouse', x: 16, y: 36, w: 8, h: 6, colour: '#2c2430', windows: false, style: 'industrial', floors: 2 },
+  { id: 'pixel_palace', name: 'Pixel Palace', x: 25, y: 36, w: 7, h: 6, colour: '#2a1a3a', windows: true, style: 'shop', awning: '#ff5fa8', sign: 'PIXEL PALACE', floors: 2 },
   { id: 'tattoo', name: 'Needle & Thread', x: 43, y: 36, w: 8, h: 6, colour: '#2f1a2a', windows: true, style: 'shop', awning: '#f5348c', sign: 'NEEDLE & THREAD', floors: 2 },
-  { id: 'depot', name: 'Bus depot', x: 53, y: 36, w: 16, h: 6, colour: '#1b2128', windows: false, style: 'industrial', floors: 1 },
+  { id: 'basilico', name: 'Basilico', x: 52, y: 36, w: 7, h: 6, colour: '#3a2a1a', windows: true, style: 'shop', awning: '#c9313f', sign: 'BASILICO trattoria', floors: 2 },
+  { id: 'depot', name: 'Bus depot', x: 60, y: 36, w: 9, h: 6, colour: '#1b2128', windows: false, style: 'industrial', floors: 1 },
 ];
 
 export const CITY_DOORS: readonly CityDoor[] = [
@@ -176,17 +188,21 @@ export const CITY_DOORS: readonly CityDoor[] = [
   // Places you can wander into.
   { id: 'door_cafe', x: 24, y: 21, label: 'Copper Kettle', place: 'copper_kettle' },
   { id: 'door_records', x: 60, y: 21, label: 'Static', place: 'static_records' },
+  { id: 'door_panels', x: 67, y: 21, label: 'Panels', place: 'panels' },
+  { id: 'door_gallery', x: 63, y: 10, label: 'Meridian Gallery', place: 'meridian_gallery' },
+  { id: 'door_market', x: 43, y: 28, label: 'Fresh Market', place: 'fresh_market' },
+  { id: 'door_nightjar', x: 9, y: 42, label: 'Nightjar', place: 'nightjar' },
+  { id: 'door_arcade', x: 28, y: 42, label: 'Pixel Palace', place: 'pixel_palace' },
+  { id: 'door_basilico', x: 55, y: 42, label: 'Basilico', place: 'basilico' },
 
   // Doors with something to say.
   { id: 'door_home', x: 48, y: 9, label: 'Home', line: 'Your flat. The radiator is making the noise again.' },
   { id: 'door_laundrette', x: 5, y: 21, label: 'Spin City', line: 'Open till late. Someone has left a single sock on top of every machine, like a warning.' },
   { id: 'door_noodles', x: 17, y: 28, label: 'Slurp', line: 'Steam on the window, a queue out the door at nine, and a broth that has ended arguments.' },
-  { id: 'door_shop', x: 43, y: 28, label: 'Corner shop', line: 'Open at all the hours that matter. The man behind the counter has opinions on the darts.' },
   { id: 'door_cinema', x: 52, y: 28, label: 'The Regal', line: 'Two screens, one of them showing something from 1974. The seats are better than they have any right to be.' },
-  { id: 'door_chemist', x: 67, y: 21, label: 'Chemist', line: 'Plasters, paracetamol, and a photo booth that still works if you hit it.' },
-  { id: 'door_boat_club', x: 9, y: 42, label: 'Boat club', line: 'Members only. Nobody has ever seen a boat.' },
+  { id: 'door_warehouse', x: 20, y: 42, label: 'The old warehouse', line: 'Chained shut. Every few months a party happens in there and nobody knows who threw it.' },
+  { id: 'door_depot', x: 64, y: 42, label: 'Bus depot', line: 'The 43 lives here, apparently. You have never seen it go in or come out.' },
   { id: 'door_tattoo', x: 47, y: 42, label: 'Needle & Thread', line: "The artist's own arms are the portfolio. Sable's line-work came from here." },
-  { id: 'door_terrace', x: 63, y: 10, label: 'The terrace', line: 'Bay windows, three doorbells each, and a cat that owns the whole row.' },
 ];
 
 export const CITY_PROPS: readonly CityProp[] = [

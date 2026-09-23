@@ -17,7 +17,9 @@ import { CITY_SPAWN } from '@/content/city';
 import { interiorFor } from '@/engine/interior';
 import type { SmallTalkState } from '@/engine/smallTalk';
 import { openSmallTalk, saySmallTalk } from '@/engine/smallTalk';
-import { strangerFor } from '@/content/strangers';
+import { getStranger } from '@/content/strangers';
+import type { PropAction } from '@/content/interiors';
+import { GESTURES, applyScriptedGesture, gesturesFor } from '@/engine/gestures';
 import type { DialogueProvider } from '@/types/dialogue';
 import { beginEncounter, chooseOption, concludeEncounter, sayToHer } from '@/engine/encounter';
 import { checkService, providerFor, scriptedProvider, supportsFreeText } from '@/engine/dialogue/providers';
@@ -27,6 +29,7 @@ import { onDayRolled } from '@/engine/dayTick';
 import { askOut, sendText } from '@/engine/phone';
 import { WINGMAN_ASSIST_BONUS, assistLine, tipFor } from '@/engine/wingman';
 import { dartsBonus, dartsVerdict } from '@/engine/darts';
+import { grantStatXp } from '@/engine/progression';
 import { PLAYER_EXITS } from '@/content/encounterCopy';
 import { clearSave, hasSave, loadFromStorage, saveToStorage } from '@/engine/save';
 import type { ArtMap, ArtSlot } from '@/engine/artStore';
@@ -69,8 +72,8 @@ export interface GameStore {
    * game never cuts away from itself.
    */
   interior: InteriorId | null;
-  /** Chatting to a passer-by: no meters, no memory, just a person. */
-  smallTalk: (SmallTalkState & { walkerIndex: number }) | null;
+  /** Chatting to a passer-by or a shopkeeper: no meters, no memory, just a person. */
+  smallTalk: (SmallTalkState & { walkerIndex: number | null }) | null;
   /** Where you are standing in that room. */
   interiorPosition: { x: number; y: number };
   /**
@@ -117,8 +120,13 @@ export interface GameStore {
   leaveInterior: () => void;
   /** Step into a café or a shop. Costs nothing; there is nobody to meet. */
   enterPlace: (place: PlaceId) => void;
-  /** Strike up a conversation with a passer-by. */
-  talkToStranger: (walkerIndex: number) => void;
+  /** Strike up a conversation with anyone who is not a lead. A walker index
+   *  pins that walker in place; staff and visitors already stand still. */
+  talkToStranger: (strangerId: string, walkerIndex?: number) => void;
+  /** Something you can do for her here: buy a drink, order dinner. */
+  gesture: (gestureId: string) => Promise<void>;
+  /** Use a fixture in a room: a drink at the bar, a round on the cabinet. */
+  useFixture: (action: PropAction) => void;
   /** Say something to them. Free text always; they are not a scored encounter. */
   saySmall: (text: string) => Promise<void>;
   endSmallTalk: () => void;
@@ -405,22 +413,73 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  talkToStranger: (walkerIndex) => {
-    const stranger = strangerFor(walkerIndex);
+  talkToStranger: (strangerId, walkerIndex) => {
+    const stranger = getStranger(strangerId);
+    if (!stranger) return;
     playCue('line_her');
     set({
-      smallTalk: { ...openSmallTalk(stranger, walkerIndex + Date.now()), walkerIndex },
+      smallTalk: {
+        ...openSmallTalk(stranger, (walkerIndex ?? 0) + Date.now()),
+        walkerIndex: walkerIndex ?? null,
+      },
       notice: null,
     });
+  },
+
+  gesture: async (gestureId) => {
+    const { game, encounter, interior } = get();
+    const def = GESTURES[gestureId];
+    if (!game || !encounter || !def || encounter.busy || encounter.outcome) return;
+    if (!gesturesFor(interior).some((offered) => offered.id === def.id)) return;
+    if (game.player.money < def.cost) {
+      set({ notice: `You need $${def.cost} for that.` });
+      return;
+    }
+    const paid: GameState = {
+      ...game,
+      player: { ...game.player, money: game.player.money - def.cost },
+    };
+    playCue('line_you');
+    if (supportsFreeText(activeProvider)) {
+      // With a model, what he did is just another turn, and she reacts to it
+      // in her own voice. Pay first, so the game state is right either way.
+      set({ game: commit(paid) });
+      await get().sayTo(def.did);
+      return;
+    }
+    set({ game: commit(paid), encounter: applyScriptedGesture(encounter, def) });
+  },
+
+  useFixture: (action) => {
+    const { game } = get();
+    if (!game) return;
+    if (game.player.money < action.cost) {
+      set({ notice: `You need $${action.cost} for that.` });
+      return;
+    }
+    const energy = Math.max(0, Math.min(100, game.player.energy + (action.energy ?? 0)));
+    let next: GameState = {
+      ...game,
+      player: { ...game.player, money: game.player.money - action.cost, energy },
+    };
+    let gained = 0;
+    if (action.statXp) {
+      const granted = grantStatXp(next.player, action.statXp.stat, action.statXp.amount);
+      next = { ...next, player: granted.player };
+      gained = granted.pointsGained;
+    }
+    playCue(gained > 0 ? 'stat_up' : 'ui_tap');
+    set({ game: commit(next), notice: action.line });
   },
 
   saySmall: async (text) => {
     const { smallTalk } = get();
     const trimmed = text.trim();
     if (!smallTalk || smallTalk.busy || smallTalk.over || !trimmed) return;
-    set({ smallTalk: { ...smallTalk, busy: true } });
-    const stranger = strangerFor(smallTalk.walkerIndex);
-    const next = await saySmallTalk(stranger, smallTalk, trimmed, smallTalk.walkerIndex + smallTalk.turn);
+    set({ smallTalk: { ...smallTalk, busy: true, pending: trimmed } });
+    const stranger = getStranger(smallTalk.strangerId);
+    if (!stranger) return;
+    const next = await saySmallTalk(stranger, smallTalk, trimmed, (smallTalk.walkerIndex ?? 0) + smallTalk.turn);
     playCue('line_her');
     set({ smallTalk: { ...next, walkerIndex: smallTalk.walkerIndex } });
   },
@@ -506,7 +565,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   pickOption: async (optionId) => {
     const { game, encounter } = get();
     if (!game || !encounter || encounter.busy || encounter.outcome) return;
-    set({ encounter: { ...encounter, busy: true } });
+    const chosen = encounter.options.find((option) => option.id === optionId);
+    set({ encounter: { ...encounter, busy: true, ...(chosen ? { pending: chosen.text } : {}) } });
     const rng = createRng(game.rngSeed, game.rngCursor);
     try {
       const next = await chooseOption(game, encounter, optionId, activeProvider, rng);
@@ -534,7 +594,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
     if (text.trim().length === 0) return;
 
-    set({ encounter: { ...encounter, busy: true } });
+    // Pending goes up immediately; the beat list catches up when she answers.
+    set({ encounter: { ...encounter, busy: true, pending: text.trim() } });
     const rng = createRng(game.rngSeed, game.rngCursor);
     try {
       const next = await sayToHer(game, encounter, text, activeProvider, rng);

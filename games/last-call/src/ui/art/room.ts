@@ -301,6 +301,165 @@ function drawProp(ctx: CanvasRenderingContext2D, prop: InteriorProp, def: Interi
       ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
       break;
     }
+    case 'cabinet': {
+      // An arcade machine: dark body, a lit screen, a marquee in its colour.
+      const tint = prop.colour ?? glow;
+      block(ctx, prop, '#1c1626', 0.55);
+      ctx.fillStyle = tint;
+      ctx.fillRect(x + 1, y + 1, w - 2, 3);
+      const screen = ctx.createLinearGradient(x, y + 5, x, y + h * 0.55);
+      screen.addColorStop(0, mix(tint, 0.9, 30));
+      screen.addColorStop(1, '#0b0a14');
+      ctx.fillStyle = screen;
+      ctx.fillRect(x + 2, y + 5, w - 4, h * 0.55 - 5);
+      const aura = ctx.createRadialGradient(x + w / 2, y + h * 0.3, 1, x + w / 2, y + h * 0.3, w);
+      aura.addColorStop(0, `${tint}66`);
+      aura.addColorStop(1, `${tint}00`);
+      ctx.fillStyle = aura;
+      ctx.fillRect(x - w * 0.5, y - h * 0.5, w * 2, h * 2);
+      // Joystick and two buttons on the control deck.
+      ctx.fillStyle = '#e8e2f2';
+      ctx.beginPath();
+      ctx.arc(x + w * 0.3, y + h * 0.78, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = tint;
+      ctx.beginPath();
+      ctx.arc(x + w * 0.62, y + h * 0.78, 1.3, 0, Math.PI * 2);
+      ctx.arc(x + w * 0.8, y + h * 0.74, 1.3, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'painting': {
+      // A canvas in a frame, with a wash of its own colour and a spotlight.
+      const tint = prop.colour ?? glow;
+      const spot = ctx.createRadialGradient(x + w / 2, y + h, 1, x + w / 2, y + h, w * 0.9);
+      spot.addColorStop(0, 'rgba(255, 244, 220, 0.22)');
+      spot.addColorStop(1, 'rgba(255, 244, 220, 0)');
+      ctx.fillStyle = spot;
+      ctx.fillRect(x - w * 0.5, y, w * 2, h * 2.4);
+      ctx.fillStyle = '#e8dcc8';
+      ctx.fillRect(x, y, w, h);
+      const wash = ctx.createLinearGradient(x, y, x + w, y + h);
+      wash.addColorStop(0, mix(tint, 1.2, 20));
+      wash.addColorStop(1, mix(tint, 0.5));
+      ctx.fillStyle = wash;
+      ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.beginPath();
+      ctx.arc(x + w * 0.35, y + h * 0.45, h * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+      break;
+    }
+    case 'plinth': {
+      block(ctx, prop, '#cfc8d8', 0.35);
+      // The piece on top: a small dark shape with a highlight.
+      ctx.fillStyle = '#5a4a3a';
+      ctx.beginPath();
+      ctx.ellipse(x + w / 2, y + h * 0.22, w * 0.22, h * 0.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#d8b06a';
+      ctx.beginPath();
+      ctx.arc(x + w * 0.44, y + h * 0.16, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'fridge': {
+      // A chiller cabinet: glass front, lit shelves, rows of things in colour.
+      block(ctx, prop, '#3b4a5a', 0.24);
+      ctx.fillStyle = 'rgba(180, 230, 255, 0.16)';
+      ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
+      const goods = ['#3fbf85', '#ffce6b', '#ff5fa8', '#4fd6ff', '#e2a03f', '#f0e6d8'];
+      for (let i = 0; i < Math.floor((w - 4) / 4); i += 1) {
+        ctx.fillStyle = goods[(i * 5) % goods.length]!;
+        ctx.fillRect(x + 3 + i * 4, y + 4, 2.6, h * 0.3);
+        ctx.fillRect(x + 3 + i * 4, y + h * 0.62, 2.6, h * 0.28);
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3);
+      break;
+    }
+    case 'produce': {
+      // A tilted crate of fruit and veg, or bread, or flowers: heaps of colour.
+      block(ctx, prop, '#4a3a26', 0.35);
+      const tint = prop.colour ?? '#3fbf85';
+      const heap = [tint, mix(tint, 1.25, 20), mix(tint, 0.75), '#e2a03f', '#c9313f'];
+      for (let i = 0; i < Math.floor(w / 4) * 2; i += 1) {
+        ctx.fillStyle = heap[(i * 3 + Math.round(y)) % heap.length]!;
+        ctx.beginPath();
+        ctx.arc(x + 4 + (i % Math.floor(w / 4)) * 4, y + 4 + Math.floor(i / Math.floor(w / 4)) * 5, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (prop.label) {
+        ctx.fillStyle = '#f2eefc';
+        ctx.font = '700 4.5px "DM Sans", system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(prop.label.toUpperCase(), x + w / 2, y + h - 4);
+      }
+      break;
+    }
+    case 'booth': {
+      // A velvet banquette: a padded back along the top, a seat in front.
+      const velvet = prop.colour ?? '#3a1f3a';
+      block(ctx, prop, velvet, 0.5);
+      ctx.fillStyle = mix(velvet, 1.35, 16);
+      ctx.fillRect(x + 2, y + h * 0.5, w - 4, h * 0.24);
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.lineWidth = 1;
+      for (let bx = x + w / 4; bx < x + w - 2; bx += w / 4) {
+        ctx.beginPath();
+        ctx.moveTo(bx, y + 2);
+        ctx.lineTo(bx, y + h * 0.5);
+        ctx.stroke();
+      }
+      break;
+    }
+    case 'bottles': {
+      // The back bar: shelves of bottles lit from below.
+      const under = ctx.createLinearGradient(x, y + h, x, y);
+      under.addColorStop(0, `${glow}55`);
+      under.addColorStop(1, `${glow}00`);
+      ctx.fillStyle = under;
+      ctx.fillRect(x, y - h * 0.4, w, h * 1.4);
+      ctx.fillStyle = mix(trim, 0.7);
+      ctx.fillRect(x, y + h - 2, w, 2);
+      const glass = ['#4fd6ff', '#ffce6b', '#3fbf85', '#f0e6d8', '#ff5fa8', '#e2a03f', '#9a6bff'];
+      for (let i = 0; i < Math.floor((w - 2) / 3); i += 1) {
+        ctx.fillStyle = glass[(i * 3) % glass.length]!;
+        ctx.globalAlpha = 0.85;
+        const bh = h * (0.55 + ((i * 7) % 3) * 0.12);
+        ctx.fillRect(x + 2 + i * 3, y + h - 2 - bh, 1.8, bh);
+        ctx.fillRect(x + 2.5 + i * 3, y + h - 2 - bh - 1.6, 0.8, 1.6);
+      }
+      ctx.globalAlpha = 1;
+      break;
+    }
+    case 'oven': {
+      // A wood-fired oven: a dome with a glowing mouth.
+      ctx.fillStyle = '#5a4a3a';
+      ctx.beginPath();
+      ctx.arc(x + w / 2, y + h * 0.6, w * 0.5, Math.PI, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(x, y + h * 0.6, w, h * 0.4);
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(x + w / 2, y + h * 0.6, w * 0.5, Math.PI, Math.PI * 2);
+      ctx.stroke();
+      const fire = ctx.createRadialGradient(x + w / 2, y + h * 0.7, 1, x + w / 2, y + h * 0.7, w * 0.3);
+      fire.addColorStop(0, '#ffe08a');
+      fire.addColorStop(0.5, '#ff7a2a');
+      fire.addColorStop(1, '#3a1208');
+      ctx.fillStyle = fire;
+      ctx.beginPath();
+      ctx.arc(x + w / 2, y + h * 0.72, w * 0.26, Math.PI, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
   }
 }
 

@@ -30,6 +30,8 @@ export interface SmallTalkState {
   over: boolean;
   /** How many turns in; they drift away eventually, as people do. */
   turn: number;
+  /** What you just said, shown the moment you say it, while they think. */
+  pending?: string | undefined;
 }
 
 /** Strangers give you a handful of exchanges, then they have somewhere to be. */
@@ -70,7 +72,7 @@ async function askModel(
   return sampleText([
     {
       role: 'user',
-      content: `You are playing a stranger someone has struck up a conversation with on a city street. You are ${stranger.name}: ${stranger.persona}
+      content: `You are playing someone a man has struck up a conversation with, in the place the brief describes. You are ${stranger.name}: ${stranger.persona}
 
 Reply with one or two sentences in their voice and nothing else — no name label, no quotation marks, no stage directions, no emoji.
 
@@ -114,5 +116,6 @@ export async function saySmallTalk(
     beats: [...withPlayer.beats, { speaker: 'them', text: line }],
     busy: false,
     over: done,
+    pending: undefined,
   };
 }

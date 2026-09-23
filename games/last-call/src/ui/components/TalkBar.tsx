@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { EncounterState } from '@/types/dialogue';
 import { OUTCOME_LINES } from '@/content/encounterCopy';
+import { gesturesFor } from '@/engine/gestures';
 import { useGameStore } from '@/state/gameStore';
 
 /**
@@ -14,7 +15,10 @@ import { useGameStore } from '@/state/gameStore';
  * game's rules — it is just the other way to play it.
  */
 export function TalkBar({ encounter, name }: { encounter: EncounterState; name: string }) {
-  const { pickOption, sayTo, walkAway, endEncounter, canSpeakFreely } = useGameStore();
+  const { pickOption, sayTo, walkAway, endEncounter, canSpeakFreely, gesture } = useGameStore();
+  const interior = useGameStore((store) => store.interior);
+  const money = useGameStore((store) => store.game?.player.money ?? 0);
+  const gestures = gesturesFor(interior);
   const [draft, setDraft] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
   const freeText = canSpeakFreely();
@@ -49,6 +53,13 @@ export function TalkBar({ encounter, name }: { encounter: EncounterState; name: 
         }
         return;
       }
+      // The numbers carry on past the replies into what the place lets you do.
+      const offered = gestures[index - 1 - encounter.options.length];
+      if (!Number.isNaN(index) && offered && !locked && money >= offered.cost) {
+        event.preventDefault();
+        void gesture(offered.id);
+        return;
+      }
       if ((event.key === 'Tab' || event.key === '/') && freeText && !locked) {
         event.preventDefault();
         inputRef.current?.focus();
@@ -56,7 +67,7 @@ export function TalkBar({ encounter, name }: { encounter: EncounterState; name: 
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [encounter.options, encounter.busy, locked, over, freeText, pickOption, walkAway, endEncounter]);
+  }, [encounter.options, encounter.busy, locked, over, freeText, pickOption, walkAway, endEncounter, gestures, gesture, money]);
 
   const send = () => {
     const text = draft.trim();
@@ -126,6 +137,33 @@ export function TalkBar({ encounter, name }: { encounter: EncounterState; name: 
           </button>
         ))}
       </div>
+
+      {gestures.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {gestures.map((offered, index) => {
+            const affordable = money >= offered.cost;
+            return (
+              <button
+                key={offered.id}
+                onClick={() => (affordable && !locked ? void gesture(offered.id) : undefined)}
+                disabled={locked || !affordable}
+                title={affordable ? undefined : `You need $${offered.cost}`}
+                className={`tap shrink-0 rounded-xl border px-3 py-2 text-left text-xs ${
+                  affordable
+                    ? 'border-gold-400/50 bg-gold-500/10 text-ink-100'
+                    : 'border-ink-600/20 bg-night-900/60 text-ink-600'
+                } ${encounter.busy ? 'opacity-50' : ''}`}
+              >
+                <span className="mr-1.5 inline-block rounded border border-ink-500/40 px-1 font-mono text-[0.65rem] text-ink-500">
+                  {encounter.options.length + index + 1}
+                </span>
+                {offered.label}
+                <span className="ml-1.5 font-display text-gold-400">${offered.cost}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {freeText ? (
         <form
