@@ -1277,7 +1277,7 @@ export const WREN: CharacterDef = {
     },
   ],
   /** Her generated key-art portrait, loaded straight from the render host. */
-  portrait: 'https://d8j0ntlcm91z4.cloudfront.net/user_37NVjOty0iqni6aBd5Kpn88QUhU/hf_20260921_161148_9db43ca0-fb56-463a-89cb-b0b7e16a015b.png',
+  portrait: 'https://d8j0ntlcm91z4.cloudfront.net/user_37NVjOty0iqni6aBd5Kpn88QUhU/hf_20260923_183030_9467da64-2709-4ffa-a2f6-18dfced590b0.png',
   palette: {
     hair: '#2a2338',
     hairShadow: '#150f1e',

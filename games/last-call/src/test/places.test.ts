@@ -52,9 +52,9 @@ describe('every place on the block', () => {
     }
   });
 
-  it('has a still for every room except the one the filter refused', () => {
+  it('has a rendered scene for every room, and for the street', () => {
     const missing = Object.keys(INTERIORS).filter((id) => !(id in BACKDROPS));
-    expect([...missing].sort()).toEqual(['akai', 'panels', 'slurp']);
+    expect(missing).toEqual([]);
     expect(BACKDROPS.street).toMatch(/^https:\/\//);
   });
 });

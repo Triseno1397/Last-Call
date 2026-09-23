@@ -154,3 +154,17 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .bubble-pop, .thinking-dot, .shot-in { animation: none; }
 }
+
+/* Standing in a picture: the player's cutout is sized per frame through a
+   custom property, and bobs while walking. */
+.scene-player img,
+.scene-player canvas {
+  height: var(--h, 40%) !important;
+}
+@keyframes scene-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.scene-walk .scene-player-body {
+  animation: scene-bob 0.36s ease-in-out infinite;
+}

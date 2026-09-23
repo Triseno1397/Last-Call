@@ -43,6 +43,7 @@ import { drawSpeechBubble, drawThinking } from '@/ui/art/bubble';
 import { TalkBar } from '@/ui/components/TalkBar';
 import { ChatBar } from '@/ui/components/ChatBar';
 import { ConversationPanel } from '@/ui/components/ConversationPanel';
+import { SceneView } from '@/ui/components/SceneView';
 import { Button } from '@/ui/components/Button';
 import { Meter } from '@/ui/components/Meter';
 
@@ -152,6 +153,8 @@ export function CityMapScreen({ game }: { game: GameState }) {
   // not state: they change every frame and nothing outside the canvas cares.
   const facing = useRef<Facing>('down');
   const walkPhase = useRef(0);
+  /** Whether you are mid-stride this frame; the scene reads it to bob you. */
+  const walkingRef = useRef(false);
   const talkRef = useRef<{ person: StreetPerson | null; encounter: typeof encounter }>({
     person: null,
     encounter: null,
@@ -247,14 +250,14 @@ export function CityMapScreen({ game }: { game: GameState }) {
 
   // Show the still of the place on arrival, then let it go after a beat.
   useEffect(() => {
-    if (!backdrop) {
+    if (!backdrop || interior) {
       setShot(null);
       return;
     }
     setShot(shotFor);
     const timer = window.setTimeout(() => setShot(null), reduced ? 1600 : 3200);
     return () => window.clearTimeout(timer);
-  }, [shotFor, backdrop, reduced]);
+  }, [shotFor, backdrop, reduced, interior]);
 
   // The static layer is painted once; the loop only draws what moves.
   useEffect(() => {
@@ -422,6 +425,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
       }
       const length = Math.hypot(dx, dy);
       const walking = length > 0;
+      walkingRef.current = walking;
       if (walking) {
         const move = (SPEED * delta) / (length > 1 ? length : 1);
         position.current = room
@@ -431,6 +435,13 @@ export function CityMapScreen({ game }: { game: GameState }) {
         // Two strides a second at full tilt, tied to real time rather than
         // frame count so the gait matches the speed on any refresh rate.
         walkPhase.current = (walkPhase.current + delta * 2) % 1;
+      }
+
+      // Indoors the picture is the room, and SceneView paints you into it;
+      // the canvas only draws the street.
+      if (room) {
+        frame = requestAnimationFrame(loop);
+        return;
       }
 
       const canvas = canvasRef.current;
@@ -443,7 +454,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
         // A room is a fraction of the street's size, so it gets a tighter
         // camera: the whole room across the screen, rather than the room
         // floating small in a field of wall.
-        const across = room ? Math.min(TILES_ACROSS, Math.max(12, room.width + 1)) : TILES_ACROSS;
+        const across = TILES_ACROSS;
         const zoom = Math.max(1, cssWidth / (across * TILE));
         const viewW = cssWidth / zoom;
         const viewH = cssHeight / zoom;
@@ -819,8 +830,18 @@ export function CityMapScreen({ game }: { game: GameState }) {
         ref={frameRef}
         className={`panel relative min-h-[42vh] flex-1 overflow-hidden rounded-2xl ${talking ? 'hidden' : ''}`}
       >
-        <canvas ref={canvasRef} className="block h-full w-full" />
-        {backdrop && shot === null && (
+        <canvas ref={canvasRef} className={`block h-full w-full ${room ? 'hidden' : ''}`} />
+        {room && interior && (
+          <SceneView
+            game={game}
+            interior={interior}
+            room={room}
+            positionRef={position}
+            facingRef={facing}
+            walkingRef={walkingRef}
+          />
+        )}
+        {backdrop && !interior && shot === null && (
           <button
             type="button"
             onClick={() => setShot(shotFor)}
@@ -835,7 +856,7 @@ export function CityMapScreen({ game }: { game: GameState }) {
             />
           </button>
         )}
-        {backdrop && shot !== null && (
+        {backdrop && !interior && shot !== null && (
           <button
             type="button"
             onClick={() => setShot(null)}

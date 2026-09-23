@@ -619,7 +619,7 @@ const MARKET: InteriorDef = {
       kind: 'grow_rack', x: 3, y: 6, w: 3, h: 1.6, label: 'the grow racks',
       action: { id: 'market_groceries', label: 'Buy greens', cost: 9, energy: 6, statXp: { stat: 'fitness', amount: 3 }, line: 'Greens cut from the rack while you wait, still wet. A whole plan for the week. You feel like an adult for the length of the walk home.' },
     },
-    { kind: 'produce', x: 7, y: 6, w: 3, h: 1.6, label: 'the good bread', colour: '#d8b06a', line: 'Baked round the corner, gone by ten. If there is one left, it is a sign.' },
+    { kind: 'produce', x: 5.8, y: 6, w: 2.8, h: 1.6, label: 'the good bread', colour: '#d8b06a', line: 'Baked round the corner, gone by ten. If there is one left, it is a sign.' },
     { kind: 'shelf', x: 10.5, y: 6, w: 1.4, h: 4, colour: '#3b4a5a', label: 'the tinned aisle', line: 'Beans, more beans, and one tin of something with a fish on it that has been here since you moved in.' },
     { kind: 'shelf', x: 13.5, y: 6, w: 1.4, h: 4, colour: '#3b4a5a' },
     {

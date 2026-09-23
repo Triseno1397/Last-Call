@@ -1299,7 +1299,7 @@ export const NADIA: CharacterDef = {
     },
   ],
   /** Her generated key-art portrait, loaded straight from the render host. */
-  portrait: 'https://d8j0ntlcm91z4.cloudfront.net/user_37NVjOty0iqni6aBd5Kpn88QUhU/hf_20260921_161149_8e80312d-de6f-4a3d-bac9-b82e9334f63a.png',
+  portrait: 'https://d8j0ntlcm91z4.cloudfront.net/user_37NVjOty0iqni6aBd5Kpn88QUhU/hf_20260923_183147_4b0be7b0-0bdd-47a9-bfa4-aa43cdb89e10.png',
   palette: {
     hair: '#d8b45c',
     hairShadow: '#8f6f22',

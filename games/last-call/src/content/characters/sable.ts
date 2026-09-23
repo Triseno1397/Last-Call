@@ -1485,7 +1485,7 @@ export const SABLE: CharacterDef = {
     },
   ],
   /** Her generated key-art portrait, loaded straight from the render host. */
-  portrait: 'https://d8j0ntlcm91z4.cloudfront.net/user_37NVjOty0iqni6aBd5Kpn88QUhU/hf_20260921_161148_f267f30e-a4bc-4afe-bdbe-1e7b5e8a76a9.png',
+  portrait: 'https://d8j0ntlcm91z4.cloudfront.net/user_37NVjOty0iqni6aBd5Kpn88QUhU/hf_20260923_183031_4cba8496-0f06-4323-9331-039a68f3ca03.png',
   palette: {
     hair: '#7a1f3a',
     hairShadow: '#45101f',

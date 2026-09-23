@@ -66,6 +66,20 @@ Always night, or the dusk before it. Rain has just stopped.
 | grow-pink | `#ff7ad9` | the market's grow light |
 | cream | `#e8e2d8` | checkerboard, paper |
 
+## How the rooms are played
+
+Every place is a rendered scene, generated from the reference set with the
+room's counter at the back and the door at the bottom of the frame. The
+drawn floor plan of the room (`content/interiors.ts`) is projected onto the
+picture in perspective (`engine/scene.ts`), so collision, stations and
+fixtures are unchanged and only the way they are shown differs. People are
+full-length anime cutouts (`content/cutouts.ts`) standing at their stations;
+the player is one too, and the layer pans sideways on a phone.
+
+The floor's position in each picture is set in `content/scenes.ts`
+(`SCENE_FLOORS`); if a person stands in the wrong place in a room, that is
+the number to nudge, not the plan.
+
 ## Generation rules
 
 - Every environment still is generated with the same reference set and the
