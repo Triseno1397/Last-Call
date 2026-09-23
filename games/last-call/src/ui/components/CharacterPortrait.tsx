@@ -117,6 +117,25 @@ export function CharacterPortrait({
     );
   }
 
+  // Her generated key art, loaded straight from the render host: the look the
+  // game was made to match. The drawn layers below are only for when it
+  // cannot load.
+  if (character.portrait && !importedBroken) {
+    return (
+      <div
+        className={`relative overflow-hidden rounded-2xl ${className}`}
+        style={{ width, height, background: palette.background }}
+      >
+        <img
+          src={character.portrait}
+          alt={`${character.name}, looking ${expression}`}
+          className="absolute inset-0 h-full w-full object-cover object-top"
+          onError={() => setImportedBroken(true)}
+        />
+      </div>
+    );
+  }
+
   if (art === 'art') {
     return (
       <div
